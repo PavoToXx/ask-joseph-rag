@@ -215,6 +215,6 @@ docs/*
 # Variables de entorno
 .env
 
-test_temp/*
+test_temp/
 
-docs_temp/*
+docs_temp/
