@@ -23,10 +23,24 @@ logger = logging.getLogger(__name__)
 # ── Cargar variables de entorno ────────────────────────
 load_dotenv()
 
+# ── Helper: Rastrear qué variable de entorno fue usada ──────
+def get_env_var_with_tracking(*var_names):
+    """
+    Intenta múltiples nombres de variables de entorno en orden.
+    Retorna (valor, nombre_usado) si encuentra algo con contenido.
+    Retorna (None, nombres_combinados) si todas están vacías.
+    """
+    for var_name in var_names:
+        value = os.getenv(var_name, "").strip()
+        if value:
+            return value, var_name
+    combined = "/".join(var_names)
+    return None, combined
+
 # ── Configuración con validación ──────────────────────
 try:
-    S3_BUCKET = os.getenv("S3_BUCKET_NAME") or os.getenv("AWS_BUCKET_NAME")
-    AZURE_KEY = os.getenv("AZURE_OPENAI_KEY") or os.getenv("AZURE_OPENAI_API_KEY")
+    S3_BUCKET, S3_BUCKET_VAR = get_env_var_with_tracking("S3_BUCKET_NAME", "AWS_BUCKET_NAME")
+    AZURE_KEY, AZURE_KEY_VAR = get_env_var_with_tracking("AZURE_OPENAI_KEY", "AZURE_OPENAI_API_KEY")
     AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
     API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
     DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-small")
@@ -34,20 +48,22 @@ try:
     AWS_REGION = os.getenv("AWS_DEFAULT_REGION") or os.getenv("AWS_REGION") or "us-east-1"
     AWS_PROFILE = os.getenv("AWS_PROFILE")
     
-    # Validar variables esenciales
-    if S3_BUCKET is None or AZURE_KEY is None or AZURE_ENDPOINT is None:
-        raise ValueError("❌ Faltan variables de entorno: S3_BUCKET_NAME/AWS_BUCKET_NAME, AZURE_OPENAI_KEY/AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT")
-
-    # Más seguro y limpio
-    missing = [k for k, v in {
-        "AWS_BUCKET_NAME": S3_BUCKET,
-        "AZURE_OPENAI_API_KEY": AZURE_KEY,
-        "AZURE_OPENAI_ENDPOINT": AZURE_ENDPOINT,
-    }.items() if not (v and v.strip())]
-
+    # Validar variables esenciales con reporting preciso
+    missing = []
+    if not S3_BUCKET:
+        missing.append(S3_BUCKET_VAR)
+    if not AZURE_KEY:
+        missing.append(AZURE_KEY_VAR)
+    if not AZURE_ENDPOINT:
+        missing.append("AZURE_OPENAI_ENDPOINT")
+    
     if missing:
         raise ValueError(f"❌ Variables faltantes o vacías: {', '.join(missing)}")
-        
+    
+    assert S3_BUCKET is not None
+    assert AZURE_KEY is not None
+    assert AZURE_ENDPOINT is not None
+    
     logger.info(f"✅ Configuración cargada correctamente")
 except Exception as e:
     logger.error(f"❌ Error en configuración: {e}")
