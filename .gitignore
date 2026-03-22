@@ -207,10 +207,10 @@ marimo/_lsp/
 __marimo__/
 
 # Vector store — no subir a GitHub, va a S3
-chroma_db/
+chroma_db/*
 
 # Documentos personales
-docs/
+docs/*
 
 # Variables de entorno
 .env
