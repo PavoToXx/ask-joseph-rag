@@ -15,6 +15,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_chroma import Chroma
 from pydantic import SecretStr
+from langchain_core.embeddings import Embeddings
 
 # == Setup Logging ==
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -70,34 +71,34 @@ except Exception as e:
     raise
 
 # ── Inicializar embeddings con Azure OpenAI (lazy) ────
-class LazyAzureOpenAIEmbeddings:
-    """
-    Proxy que retrasa la creación de AzureOpenAIEmbeddings
-    hasta el primer uso real, evitando inicialización costosa
-    en tiempo de importación del módulo.
-    """
-
-    def __init__(self, azure_deployment: str, azure_endpoint: str, api_key: SecretStr, api_version: str):
-        self._azure_deployment = azure_deployment
-        self._azure_endpoint = azure_endpoint
-        self._api_key = api_key
-        self._api_version = api_version
-        self._instance = None
-
-    def _get_instance(self) -> AzureOpenAIEmbeddings:
-        if self._instance is None:
-            logger.info("⏳ Inicializando AzureOpenAIEmbeddings (lazy)")
-            self._instance = AzureOpenAIEmbeddings(
-                azure_deployment=self._azure_deployment,
-                azure_endpoint=self._azure_endpoint,
-                api_key=self._api_key,
-                api_version=self._api_version,
+class LazyAzureOpenAIEmbeddings(Embeddings):
+    """Lazy-load Azure OpenAI embeddings to avoid early credential validation."""
+    
+    def __init__(self, azure_deployment, azure_endpoint, api_key, api_version):
+        self.azure_deployment = azure_deployment
+        self.azure_endpoint = azure_endpoint
+        self.api_key = api_key
+        self.api_version = api_version
+        self._embeddings = None
+    
+    def _get_embeddings(self):
+        """Lazy initialization on first use."""
+        if self._embeddings is None:
+            self._embeddings = AzureOpenAIEmbeddings(
+                azure_deployment=self.azure_deployment,
+                azure_endpoint=self.azure_endpoint,
+                api_key=self.api_key,
+                api_version=self.api_version,
             )
-        return self._instance
-
-    def __getattr__(self, name):
-        # Delegar cualquier acceso de atributo al objeto real
-        return getattr(self._get_instance(), name)
+        return self._embeddings
+    
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        """Embed a list of documents."""
+        return self._get_embeddings().embed_documents(texts)
+    
+    def embed_query(self, text: str) -> list[float]:
+        """Embed a query."""
+        return self._get_embeddings().embed_query(text)
 
 
 embeddings = LazyAzureOpenAIEmbeddings(
@@ -106,7 +107,6 @@ embeddings = LazyAzureOpenAIEmbeddings(
     api_key=SecretStr(AZURE_KEY),
     api_version=API_VERSION,
 )
-
 
 def build_s3_client() -> BaseClient:
     """
