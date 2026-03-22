@@ -7,8 +7,9 @@ Actualizado para langchain 0.3.1+, chromadb 1.5.5+
 import os
 import logging
 from dotenv import load_dotenv
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_openai import AzureOpenAIEmbeddings
+from pydantic import SecretStr
 
 # ── Setup Logging ──
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -18,15 +19,18 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 try:
-    AZURE_KEY = os.getenv("AZURE_OPENAI_KEY")
+    AZURE_KEY = os.getenv("AZURE_OPENAI_API_KEY")
     AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
     API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
     DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-small")
     CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
     
-    if not all([AZURE_KEY, AZURE_ENDPOINT]):
+    if AZURE_KEY is None or AZURE_ENDPOINT is None:
         raise ValueError("❌ Faltan AZURE_OPENAI_KEY o AZURE_OPENAI_ENDPOINT")
-    
+
+    if not AZURE_KEY.strip() or not AZURE_ENDPOINT.strip():
+        raise ValueError("❌ Hay variables Azure vacías; revisa tu configuración de entorno")
+
     logger.info("✅ Variables de entorno cargadas")
     
 except Exception as e:
@@ -37,7 +41,7 @@ except Exception as e:
 embeddings = AzureOpenAIEmbeddings(
     azure_deployment=DEPLOYMENT_NAME,
     azure_endpoint=AZURE_ENDPOINT,
-    api_key=AZURE_KEY,
+    api_key=SecretStr(AZURE_KEY),
     api_version=API_VERSION
 )
 
@@ -84,7 +88,6 @@ def test_similarity_search(db, query: str, k: int = 3):
             metadata = doc.metadata or {}
             source = metadata.get('source', 'desconocida')
             logger.info(f"📌 Fuente: {source}")
-            logger.info()
         
         return results
         
@@ -108,7 +111,7 @@ def main():
     
     test_queries = [
         "¿En qué proyectos ha trabajado Joseph?",
-        "Cuáles son las habilidades técnicas?",
+        "What are Joseph's technical skills?",
         "Experiencia en machine learning y cloud"
     ]
     

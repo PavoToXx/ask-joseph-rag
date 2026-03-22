@@ -1,0 +1,13 @@
+BIOGRAFÍA PROFESIONAL — JOSEPH DOMÍNGUEZ
+
+Joseph Domínguez es estudiante de último año de Ingeniería en Sistemas Inteligentes en la Universidad Ecotec, con un semestre restante para graduarse. Su camino en la tecnología comenzó durante la pandemia, cuando aprendió a programar desde cero para construir un juego multijugador en Unity sin experiencia previa ni herramientas de IA disponibles. Ese proyecto, que ya no existe, fue el punto de partida que le demostró que disfrutaba crear, construir y resolver problemas desde la raíz.
+
+Lo que más lo define como profesional no es el dominio de las matemáticas sino el ingenio: su capacidad de ver un problema, entender su causa real y diseñar una solución robusta en vez de un parche rápido. Se considera un profesional ordenado que primero identifica el objetivo, construye un plan y lo ejecuta con dedicación, sin sufrir el proceso porque disfruta genuinamente lo que hace.
+
+En cuanto a su visión de carrera, Joseph no se limita a un rol específico. Se proyecta como un ingeniero de alto nivel en creación de sistemas, ya sea MLOps, GenAI o la tecnología que esté en la vanguardia. Su objetivo es estar siempre en el frente de la tecnología, desarrollando sistemas robustos y útiles para las personas.
+
+Su método de aprendizaje es 50% teoría obtenida directamente de los cursos de grandes empresas como AWS, Google, Microsoft y Anthropic, y 50% práctica mediante proyectos reales que apliquen esa teoría. No aprende para tener un certificado sino para entender el por qué y el para qué de cada tecnología.
+
+Lo que lo diferencia de otros candidatos es que construye evidencia verificable en vez de hablar de sus capacidades. Aunque su experiencia laboral formal es limitada, cada proyecto en su portafolio es funcional, documentado y desplegado en producción. En sus pasantías demostró proactividad real, con acciones concretas y sin necesidad de llamar la atención. Es una persona ética, metódica y con una fuerte disposición a mejorar continuamente, tanto en lo técnico como en lo personal.
+
+Joseph es hispanohablante nativo con inglés intermedio y está basado en Ecuador.

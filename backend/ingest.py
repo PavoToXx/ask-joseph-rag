@@ -8,11 +8,13 @@ import boto3
 import os
 import logging
 from pathlib import Path
+from botocore.client import BaseClient
 from dotenv import load_dotenv
 from langchain_community.document_loaders import TextLoader, UnstructuredHTMLLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import AzureOpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
+from pydantic import SecretStr
 
 # == Setup Logging ==
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -23,17 +25,29 @@ load_dotenv()
 
 # ── Configuración con validación ──────────────────────
 try:
-    S3_BUCKET = os.getenv("S3_BUCKET_NAME")
-    AZURE_KEY = os.getenv("AZURE_OPENAI_KEY")
+    S3_BUCKET = os.getenv("S3_BUCKET_NAME") or os.getenv("AWS_BUCKET_NAME")
+    AZURE_KEY = os.getenv("AZURE_OPENAI_KEY") or os.getenv("AZURE_OPENAI_API_KEY")
     AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
     API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
     DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-small")
     CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
+    AWS_REGION = os.getenv("AWS_DEFAULT_REGION") or os.getenv("AWS_REGION") or "us-east-1"
+    AWS_PROFILE = os.getenv("AWS_PROFILE")
     
     # Validar variables esenciales
-    if not all([S3_BUCKET, AZURE_KEY, AZURE_ENDPOINT]):
-        raise ValueError("❌ Faltan variables de entorno: S3_BUCKET_NAME, AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT")
-    
+    if S3_BUCKET is None or AZURE_KEY is None or AZURE_ENDPOINT is None:
+        raise ValueError("❌ Faltan variables de entorno: S3_BUCKET_NAME/AWS_BUCKET_NAME, AZURE_OPENAI_KEY/AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT")
+
+    # Más seguro y limpio
+    missing = [k for k, v in {
+        "AWS_BUCKET_NAME": S3_BUCKET,
+        "AZURE_OPENAI_API_KEY": AZURE_KEY,
+        "AZURE_OPENAI_ENDPOINT": AZURE_ENDPOINT,
+    }.items() if not (v and v.strip())]
+
+    if missing:
+        raise ValueError(f"❌ Variables faltantes o vacías: {', '.join(missing)}")
+        
     logger.info(f"✅ Configuración cargada correctamente")
 except Exception as e:
     logger.error(f"❌ Error en configuración: {e}")
@@ -43,9 +57,30 @@ except Exception as e:
 embeddings = AzureOpenAIEmbeddings(
     azure_deployment=DEPLOYMENT_NAME,
     azure_endpoint=AZURE_ENDPOINT,
-    api_key=AZURE_KEY,
+    api_key=SecretStr(AZURE_KEY),
     api_version=API_VERSION
 )
+
+
+def build_s3_client() -> BaseClient:
+    """
+    Crea cliente S3 usando la cadena de credenciales estándar de AWS.
+    Prioridad recomendada:
+    1) AWS_PROFILE (desarrollo local)
+    2) OIDC/WebIdentity (CI/CD o federación en cloud)
+    3) Rol administrado/runtime provider chain
+    """
+    if AWS_PROFILE:
+        logger.info(f"🔐 AWS auth mode: profile ({AWS_PROFILE})")
+        return boto3.Session(profile_name=AWS_PROFILE, region_name=AWS_REGION).client("s3")
+
+    has_web_identity = bool(os.getenv("AWS_WEB_IDENTITY_TOKEN_FILE") and os.getenv("AWS_ROLE_ARN"))
+    if has_web_identity:
+        logger.info("🔐 AWS auth mode: OIDC/WebIdentity")
+    else:
+        logger.info("🔐 AWS auth mode: default provider chain (IAM role/managed env/shared config)")
+
+    return boto3.Session(region_name=AWS_REGION).client("s3")
 
 # ── 1. Descargar docs desde S3 ────────────────────────
 def download_from_s3(local_dir: str = "./docs_temp") -> str:
@@ -60,10 +95,7 @@ def download_from_s3(local_dir: str = "./docs_temp") -> str:
     """
     try:
         Path(local_dir).mkdir(parents=True, exist_ok=True)
-        s3 = boto3.client(
-            "s3",
-            region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1")
-        )
+        s3 = build_s3_client()
         
         logger.info(f"📥 Listando archivos de S3: {S3_BUCKET}")
         paginator = s3.get_paginator('list_objects_v2')
@@ -116,10 +148,13 @@ def load_documents(local_dir: str) -> list:
                 continue
             
             try:
-                if ext in ['.txt', '.md']:
+                loader = None
+                if ext in [".txt", ".md"]:
                     loader = TextLoader(path, encoding="utf-8")
-                elif ext == '.html':
+                elif ext == ".html":
                     loader = UnstructuredHTMLLoader(path)
+                else:
+                    continue
                 
                 loaded = loader.load()
                 docs.extend(loaded)

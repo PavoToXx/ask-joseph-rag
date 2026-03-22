@@ -1,6 +1,6 @@
 langchain
 langchain-openai
-langchain-community
+langchain-chroma
 chromadb
 openai
 fastapi
