@@ -1,0 +1,12 @@
+langchain
+langchain-openai
+langchain-community
+chromadb
+openai
+fastapi
+uvicorn
+streamlit
+boto3
+slowapi
+langdetect
+python-dotenv
