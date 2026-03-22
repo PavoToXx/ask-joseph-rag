@@ -214,3 +214,5 @@ docs/*
 
 # Variables de entorno
 .env
+
+test_temp/*
