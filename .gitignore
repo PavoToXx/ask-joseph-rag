@@ -216,3 +216,5 @@ docs/*
 .env
 
 test_temp/*
+
+docs_temp/*
