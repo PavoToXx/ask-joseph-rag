@@ -1,2 +1,2 @@
 # ask-joseph-rag
-Hola
+Hola a todos
