@@ -69,12 +69,42 @@ except Exception as e:
     logger.error(f"❌ Error en configuración: {e}")
     raise
 
-# ── Inicializar embeddings con Azure OpenAI ───────────
-embeddings = AzureOpenAIEmbeddings(
+# ── Inicializar embeddings con Azure OpenAI (lazy) ────
+class LazyAzureOpenAIEmbeddings:
+    """
+    Proxy que retrasa la creación de AzureOpenAIEmbeddings
+    hasta el primer uso real, evitando inicialización costosa
+    en tiempo de importación del módulo.
+    """
+
+    def __init__(self, azure_deployment: str, azure_endpoint: str, api_key: SecretStr, api_version: str):
+        self._azure_deployment = azure_deployment
+        self._azure_endpoint = azure_endpoint
+        self._api_key = api_key
+        self._api_version = api_version
+        self._instance = None
+
+    def _get_instance(self) -> AzureOpenAIEmbeddings:
+        if self._instance is None:
+            logger.info("⏳ Inicializando AzureOpenAIEmbeddings (lazy)")
+            self._instance = AzureOpenAIEmbeddings(
+                azure_deployment=self._azure_deployment,
+                azure_endpoint=self._azure_endpoint,
+                api_key=self._api_key,
+                api_version=self._api_version,
+            )
+        return self._instance
+
+    def __getattr__(self, name):
+        # Delegar cualquier acceso de atributo al objeto real
+        return getattr(self._get_instance(), name)
+
+
+embeddings = LazyAzureOpenAIEmbeddings(
     azure_deployment=DEPLOYMENT_NAME,
     azure_endpoint=AZURE_ENDPOINT,
     api_key=SecretStr(AZURE_KEY),
-    api_version=API_VERSION
+    api_version=API_VERSION,
 )
 
 
