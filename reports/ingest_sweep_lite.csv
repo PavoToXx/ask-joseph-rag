@@ -1,0 +1,8 @@
+ingest,retrieval,hit_rate,mrr,avg_chunks,avg_latency_ms,chunk_size,chunk_overlap,mode,k,final_k,candidates,score_threshold
+chunk=768/overlap=200,semantic-k3-thr-0.20,1.0,0.9375,2.625,246.1250000014843,768,200,semantic,3,3,0,0.2
+chunk=768/overlap=200,semantic-k3-thr-0.25,1.0,0.9375,2.625,212.87499999743886,768,200,semantic,3,3,0,0.25
+chunk=768/overlap=200,semantic-k5-thr-0.20,1.0,0.9375,3.625,160.12500000215368,768,200,semantic,5,5,0,0.2
+chunk=768/overlap=200,semantic-k5-thr-0.25,1.0,0.9375,3.625,201.24999999825377,768,200,semantic,5,5,0,0.25
+chunk=768/overlap=200,bm25-k3,0.625,0.5,1.875,1.8750000017462298,768,200,bm25,3,3,0,
+chunk=768/overlap=200,hybrid-final3-thr-0.20,0.875,0.7916666666666666,2.875,146.49999999892316,768,200,hybrid,0,3,6,0.2
+chunk=768/overlap=200,hybrid-final3-thr-0.25,0.875,0.7916666666666666,2.875,208.99999999892316,768,200,hybrid,0,3,6,0.25
