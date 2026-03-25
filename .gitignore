@@ -218,3 +218,5 @@ docs/*
 test_temp/
 
 docs_temp/
+
+scripts/

@@ -19,7 +19,6 @@ Cómo correr:
 """
 import json
 import logging
-import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -34,7 +33,7 @@ from langchain_openai import AzureOpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import SecretStr
 
-from config import Settings, get_settings
+from backend.config import Settings, get_settings
 
 # ------------------------------------------------------------------ #
 #  Logging                                                             #
@@ -98,23 +97,26 @@ VALID_DATE_RANGE_LITERALS: frozenset[str] = frozenset(
 # Mapa de canonicalización para doc_type.
 # Normaliza variantes en español/inglés a un valor único.
 DOC_TYPE_MAP: dict[str, str] = {
+    "perfil": "perfil",
+    "profile": "perfil",
     "biografia": "biography",
     "biography": "biography",
-    "cv": "cv",
-    "vitae": "cv",
-    "curriculum": "cv",
+    "cv": "experience",
+    "vitae": "experience",
+    "curriculum": "experience",
     "resumen": "summary",
     "summary": "summary",
     "skills": "skills",
     "habilidades": "skills",
-    "readme_tecnico": "readme",
-    "readme": "readme",
+    "tecnologias": "skills",
+    "readme": "project",
     "proyecto": "project",
     "project": "project",
     "experiencia": "experience",
     "experience": "experience",
     "certificaciones": "certification",
     "certification": "certification",
+    "educacion": "education",
 }
 
 # Intenciones válidas de retrieval — conjunto cerrado en español según solicitud
@@ -176,7 +178,7 @@ DEFAULT_PRIORITY: str = "normal"
 
 # Longitud mínima de chunk recomendable; los chunks más cortos intentaremos
 # fusionarlos con el chunk anterior del mismo documento.
-MIN_CHUNK_CHARS: int = 80
+MIN_CHUNK_CHARS: int = 60
 
 # Valor por defecto para technology cuando viene vacío o ausente
 DEFAULT_TECHNOLOGY: list[str] = ["general"]
@@ -232,7 +234,6 @@ def normalize_date_range(value: Optional[str]) -> str:
         value,
     )
     return "unknown"
-
 
 def canonicalize_doc_type(metadata: dict) -> dict:
     """
@@ -602,36 +603,36 @@ def process_jsonl(path: Path, file_config: dict) -> list[Document]:
 
             sanitized = sanitize_for_chroma(merged)
 
-            # Si el chunk es demasiado corto, intentar fusionarlo con el anterior
-            if len(chunk_text) < MIN_CHUNK_CHARS:
-                if docs:
-                    last_doc = docs[-1]
-                    last_meta = last_doc.metadata or {}
-                    # Fusionar solo si son del mismo archivo y tipo de documento
-                    if (
-                        last_meta.get("file_name") == sanitized.get("file_name")
-                        and last_meta.get("doc_type") == sanitized.get("doc_type")
-                    ):
-                        combined_text = last_doc.page_content + "\n\n" + chunk_text
-                        # Mantener metadata del anterior (ya saneada)
-                        docs[-1] = Document(page_content=combined_text, metadata=last_meta)
-                        continue
-                    else:
-                        logger.info(
-                            "Chunk corto no pudo fusionarse %s:%d — descartado",
-                            path.name,
-                            line_number,
-                        )
-                        discarded += 1
-                        continue
-                else:
-                    logger.info(
-                        "Chunk corto sin previo para fusionar %s:%d — descartado",
-                        path.name,
-                        line_number,
-                    )
-                    discarded += 1
-                    continue
+            # # Si el chunk es demasiado corto, intentar fusionarlo con el anterior
+            # if len(chunk_text) < MIN_CHUNK_CHARS:
+            #     if docs:
+            #         last_doc = docs[-1]
+            #         last_meta = last_doc.metadata or {}
+            #         # Fusionar solo si son del mismo archivo y tipo de documento
+            #         if (
+            #             last_meta.get("file_name") == sanitized.get("file_name")
+            #             and last_meta.get("doc_type") == sanitized.get("doc_type")
+            #         ):
+            #             combined_text = last_doc.page_content + "\n\n" + chunk_text
+            #             # Mantener metadata del anterior (ya saneada)
+            #             docs[-1] = Document(page_content=combined_text, metadata=last_meta)
+            #             continue
+            #         else:
+            #             logger.info(
+            #                 "Chunk corto no pudo fusionarse %s:%d — descartado",
+            #                 path.name,
+            #                 line_number,
+            #             )
+            #             discarded += 1
+            #             continue
+            #     else:
+            #         logger.info(
+            #             "Chunk corto sin previo para fusionar %s:%d — descartado",
+            #             path.name,
+            #             line_number,
+            #         )
+            #         discarded += 1
+            #         continue
 
             docs.append(Document(page_content=chunk_text, metadata=sanitized))
 
@@ -672,8 +673,8 @@ def process_plain_text(path: Path, file_config: dict, settings: Settings) -> lis
         return []
 
     # chunk_size del config de archivo tiene prioridad sobre Settings
-    chunk_size: int = file_config.get("chunk_size", 800)
-    chunk_overlap: int = file_config.get("chunk_overlap", 100)
+    chunk_size: int = file_config.get("chunk_size", 300 )
+    chunk_overlap: int = file_config.get("chunk_overlap", 0)
     defaults: dict = file_config.get("defaults", {})
 
     splitter = RecursiveCharacterTextSplitter(
@@ -760,17 +761,18 @@ def ingest_to_chroma(
         azure_deployment=settings.azure_openai_embedding_deployment,
         azure_endpoint=settings.azure_openai_endpoint,
         api_key=secret_key,
-        api_version=settings.azure_openai_api_version,
+        api_version=settings.azure_openai_api_version
     )
 
     logger.info("Vectorizando %d chunks → colección '%s'...", len(chunks), collection_name)
 
     vectorstore = Chroma.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        persist_directory=settings.chroma_path,
-        collection_name=collection_name,
-    )
+    documents=chunks,
+    embedding=embeddings,
+    persist_directory=settings.chroma_path,
+    collection_name=collection_name,
+    collection_metadata={"hnsw:space": "cosine"},
+)
 
     # Verificar que realmente se guardó
     client = chromadb.PersistentClient(path=settings.chroma_path)
