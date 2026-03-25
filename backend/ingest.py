@@ -674,7 +674,7 @@ def process_plain_text(path: Path, file_config: dict, settings: Settings) -> lis
 
     # chunk_size del config de archivo tiene prioridad sobre Settings
     chunk_size: int = file_config.get("chunk_size", 300 )
-    chunk_overlap: int = file_config.get("chunk_overlap", 10)
+    chunk_overlap: int = file_config.get("chunk_overlap", 0)
     defaults: dict = file_config.get("defaults", {})
 
     splitter = RecursiveCharacterTextSplitter(

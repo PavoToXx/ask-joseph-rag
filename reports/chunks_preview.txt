@@ -1,0 +1,166 @@
+Total chunks: 39
+
+--- File: biography.jsonl ---
+Chunk #1 (chars=261):
+Inicio en tecnología de forma autodidacta durante la pandemia (2020), desarrollando un juego multijugador en Unity sin experiencia previa en programación. Conocimientos formalizados posteriormente en la carrera de Ingeniería en Sistemas Inteligentes desde 2022.
+METADATA: {"file_name": "biography.jsonl", "doc_type": "biography", "section": "origen", "topic": ["autodidacta", "inicio en tecnología", "formación universitaria"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Unity", "C#"], "date_range": "2020/2022", "retrieval_intent": ["perfil"]}
+
+Chunk #2 (chars=219):
+Estudiante ecuatoriano de último año de Ingeniería en Sistemas Inteligentes, con enfoque profesional en MLOps, inteligencia artificial generativa y cloud computing. Hispanohablante nativo con nivel intermedio de inglés.
+METADATA: {"file_name": "biography.jsonl", "doc_type": "biography", "section": "perfil_profesional", "topic": ["perfil profesional", "enfoque técnico", "idiomas"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2022/2025", "retrieval_intent": ["perfil"]}
+
+Chunk #3 (chars=241):
+Perfil profesional caracterizado por metodicidad, ética y orientación a la mejora continua. Enfoque en comprender el propósito de cada tecnología antes de aplicarla, priorizando la construcción de soluciones funcionales y bien fundamentadas.
+METADATA: {"file_name": "biography.jsonl", "doc_type": "biography", "section": "caracteristicas_personales", "topic": ["metodología de trabajo", "ética profesional", "mejora continua"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2020/2025", "retrieval_intent": ["perfil"]}
+
+--- File: certification.jsonl ---
+Chunk #1 (chars=225):
+Certificación en progreso: Microsoft Certified Machine Learning Operations (MLOps Engineer Associate), versión beta. Cubre diseño e implementación de soluciones MLOps en entornos empresariales con tecnologías Microsoft Azure.
+METADATA: {"file_name": "certification.jsonl", "doc_type": "certification", "section": "microsoft_mlops", "topic": ["certificación", "MLOps", "Microsoft Azure"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Azure", "MLOps"], "date_range": "2025/2025", "retrieval_intent": ["logros", "skills"]}
+
+Chunk #2 (chars=162):
+Certificaciones obtenidas: Oracle Cloud Infrastructure Certified Foundations Associate. IBM: Docker Essentials, Retrieval-Augmented Generation (RAG) y Embeddings.
+METADATA: {"file_name": "certification.jsonl", "doc_type": "certification", "section": "oracle_ibm", "topic": ["certificación", "cloud", "RAG", "Docker", "Embeddings"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Oracle Cloud", "Docker", "ChromaDB"], "date_range": "2023/2024", "retrieval_intent": ["logros", "tecnologias"]}
+
+Chunk #3 (chars=195):
+Badges y certificaciones AWS: Cloud Quest Cloud Practitioner, Cloud 101, Databases y Generative AI. Cobertura de conceptos de nube, bases de datos y modelos de IA generativa en la plataforma AWS.
+METADATA: {"file_name": "certification.jsonl", "doc_type": "certification", "section": "aws_badges", "topic": ["certificación", "AWS", "cloud", "IA generativa"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["AWS"], "date_range": "2023/2024", "retrieval_intent": ["logros", "tecnologias"]}
+
+Chunk #4 (chars=169):
+Certificaciones HackerRank: SQL (nivel básico e intermedio) y Python (nivel básico). Validación formal de habilidades en consultas relacionales y programación en Python.
+METADATA: {"file_name": "certification.jsonl", "doc_type": "certification", "section": "hackerrank", "topic": ["certificación", "SQL", "Python"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["SQL", "Python"], "date_range": "2023/2024", "retrieval_intent": ["logros", "skills"]}
+
+Chunk #5 (chars=177):
+Certificaciones Cisco Networking Academy: Cybersecurity, Networking Basics y Linux. Sololearn: Generative AI y Prompt Engineering. Formación en redes, seguridad e IA generativa.
+METADATA: {"file_name": "certification.jsonl", "doc_type": "certification", "section": "cisco_sololearn", "topic": ["certificación", "redes", "Linux", "ciberseguridad", "IA generativa", "Prompt Engineering"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Linux", "Networking", "Cybersecurity"], "date_range": "2022/2024", "retrieval_intent": ["logros", "tecnologias"]}
+
+--- File: education.jsonl ---
+Chunk #1 (chars=219):
+Último año (semestre 8) de Ingeniería en Sistemas Inteligentes en la Universidad Ecotec (2022 - actualidad), con un semestre pendiente para graduarse. Carrera orientada a machine learning, sistemas inteligentes y cloud.
+METADATA: {"file_name": "education.jsonl", "doc_type": "cv", "section": "universidad", "topic": ["educación universitaria", "Ingeniería en Sistemas Inteligentes"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2022/2025", "retrieval_intent": ["educacion", "perfil"]}
+
+Chunk #2 (chars=147):
+Bachillerato en Ciencias en el Colegio Eloy Alfaro, graduado en 2021. Formación académica secundaria completada previo al ingreso a la universidad.
+METADATA: {"file_name": "education.jsonl", "doc_type": "cv", "section": "bachillerato_ciencias", "topic": ["educación secundaria", "bachillerato en ciencias"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2021/2021", "retrieval_intent": ["educacion"]}
+
+Chunk #3 (chars=188):
+Bachillerato en Artes con Especialización en Guitarra en el Conservatorio Antonio Neumane (2011 - 2022). Formación musical formal de 11 años en paralelo con la educación académica regular.
+METADATA: {"file_name": "education.jsonl", "doc_type": "cv", "section": "conservatorio_musica", "topic": ["formación musical", "guitarra", "educación artística"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2011/2022", "retrieval_intent": ["educacion", "perfil"]}
+
+--- File: experience.jsonl ---
+Chunk #1 (chars=220):
+Pasantía de TI en soporte técnico en SENAE (Servicio Nacional de Aduana del Ecuador), de junio a agosto de 2025. Soporte a usuarios internos en hardware, software y sistemas operativos dentro de un entorno institucional.
+METADATA: {"file_name": "experience.jsonl", "doc_type": "experience", "section": "pasantia_senae_overview", "topic": ["soporte técnico", "TI", "pasantía"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2025/2025", "retrieval_intent": ["experiencia"], "company": "SENAE"}
+
+Chunk #2 (chars=236):
+Tareas técnicas en SENAE: instalación y configuración de sistemas operativos y aplicaciones, recuperación y migración de datos críticos, implementación de máquinas virtuales con VMware Workstation Pro y resolución diaria de incidencias.
+METADATA: {"file_name": "experience.jsonl", "doc_type": "experience", "section": "pasantia_senae_tareas", "topic": ["virtualización", "migración de datos", "soporte técnico"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["VMware Workstation Pro", "Linux", "Windows"], "date_range": "2025/2025", "retrieval_intent": ["experiencia", "tecnologias"], "company": "SENAE"}
+
+Chunk #3 (chars=226):
+Pasantía de TI en el departamento de laboratorio de Odontomedic, de febrero a marzo de 2019. Tareas de gestión básica de bases de datos internas, registro de información técnica y soporte operativo en mantenimiento de equipos.
+METADATA: {"file_name": "experience.jsonl", "doc_type": "experience", "section": "pasantia_odontomedic", "topic": ["bases de datos", "soporte técnico", "pasantía"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2019/2019", "retrieval_intent": ["experiencia"], "company": "Odontomedic"}
+
+Chunk #4 (chars=215):
+Experiencia laboral formal complementada con proyectos personales funcionales y desplegados. Capacidad demostrada de ejecutar soluciones técnicas orientadas a producción de forma autónoma, sin supervisión constante.
+METADATA: {"file_name": "experience.jsonl", "doc_type": "experience", "section": "contexto_experiencia", "topic": ["experiencia práctica", "autonomía", "proyectos personales"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2019/2025", "retrieval_intent": ["experiencia", "perfil"]}
+
+--- File: other.jsonl ---
+Chunk #1 (chars=250):
+Metodología de aprendizaje: equilibrio entre teoría (cursos oficiales de AWS, Google, Microsoft y Anthropic) y práctica mediante proyectos reales. Prioridad en comprender el propósito y funcionamiento de cada tecnología antes de certificarse en ella.
+METADATA: {"file_name": "other.jsonl", "doc_type": "biography", "section": "metodologia_aprendizaje", "topic": ["metodología", "aprendizaje autónomo", "desarrollo profesional"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2020/2025", "retrieval_intent": ["perfil"]}
+
+Chunk #2 (chars=219):
+Objetivos a corto plazo: obtener la certificación Microsoft MLOps Engineer Associate, profundizar en arquitecturas serverless, automatización cloud, y mejorar prácticas de monitoreo y seguridad en sistemas distribuidos.
+METADATA: {"file_name": "other.jsonl", "doc_type": "biography", "section": "objetivos_corto_plazo", "topic": ["objetivos profesionales", "certificaciones", "cloud", "MLOps"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["AWS", "Azure"], "date_range": "2025/2026", "retrieval_intent": ["perfil", "logros"]}
+
+Chunk #3 (chars=211):
+Objetivo profesional a largo plazo: consolidarse como ingeniero especializado en MLOps, IA generativa y cloud avanzado. Meta de construir sistemas robustos, escalables y orientados a producción con impacto real.
+METADATA: {"file_name": "other.jsonl", "doc_type": "biography", "section": "objetivos_largo_plazo", "topic": ["objetivos profesionales", "MLOps", "IA generativa", "especialización"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2025/2030", "retrieval_intent": ["perfil"]}
+
+--- File: project.jsonl ---
+Chunk #1 (chars=212):
+Proyecto 'Ask Joseph': sistema RAG end-to-end en desarrollo que responde preguntas sobre el perfil profesional. Backend con rate limiting, detección de idioma automática y respuestas con métricas de recuperación.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "ask_joseph_overview", "topic": ["RAG", "chatbot", "perfil profesional"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Python", "LangChain", "Azure OpenAI", "FastAPI", "Streamlit", "ChromaDB", "AWS S3"], "date_range": "2025/2025", "retrieval_intent": ["proyectos"], "project_name": "Ask Joseph"}
+
+Chunk #2 (chars=213):
+El chatbot 'Ask Joseph' usa CI/CD con GitHub Actions y está desplegado en Azure App Service. Stack: Python, LangChain, Azure OpenAI, FastAPI (backend), Streamlit (frontend) y ChromaDB como base de datos vectorial.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "ask_joseph_deploy", "topic": ["despliegue", "CI/CD", "stack tecnológico"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["GitHub Actions", "Azure App Service", "LangChain", "ChromaDB", "FastAPI", "Streamlit"], "date_range": "2025/2025", "retrieval_intent": ["proyectos"], "project_name": "Ask Joseph"}
+
+Chunk #3 (chars=256):
+Pipeline MLOps para predicción de fallos de servidor a partir de métricas operativas. El sistema estima probabilidad de fallo, nivel de riesgo, tiempo estimado al fallo y causas probables. Pipeline local de entrenamiento genera modelo y scaler persistidos.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "mlops_pipeline_overview", "topic": ["MLOps", "predicción de fallos", "machine learning"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Python", "MLflow", "scikit-learn", "FastAPI"], "date_range": "2024/2025", "retrieval_intent": ["proyectos"], "project_name": "MLOps Pipeline - Predicción de Fallos"}
+
+Chunk #4 (chars=219):
+El pipeline MLOps de predicción de fallos está desplegado en AWS mediante contenedores Docker en Lambda y ECS (ECR). Persistencia de predicciones en S3 y monitoreo con métricas custom y logs estructurados en CloudWatch.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "mlops_pipeline_aws", "topic": ["despliegue en AWS", "contenedorización", "monitoreo"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Docker", "AWS Lambda", "ECR", "ECS", "S3", "CloudWatch"], "date_range": "2024/2025", "retrieval_intent": ["proyectos"], "project_name": "MLOps Pipeline - Predicción de Fallos"}
+
+Chunk #5 (chars=250):
+CI/CD del pipeline MLOps implementado con GitHub Actions: testing automático, validación de métrica F1 (umbral ≥ 0.85), build y despliegue automático a AWS. Seguridad con uso de secrets, menor privilegio y configuración mediante variables de entorno.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "mlops_pipeline_cicd", "topic": ["CI/CD", "seguridad", "automatización"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["GitHub Actions", "AWS", "Pytest"], "date_range": "2024/2025", "retrieval_intent": ["proyectos"], "project_name": "MLOps Pipeline - Predicción de Fallos"}
+
+Chunk #6 (chars=187):
+Cloud Resume Challenge: CV estático desplegado en AWS S3 con distribución global mediante CloudFront y HTTPS. Arquitectura completamente serverless basada en servicios gestionados de AWS.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "cloud_resume_frontend", "topic": ["serverless", "cloud", "frontend estático"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["AWS S3", "CloudFront", "HTTPS"], "date_range": "2024/2024", "retrieval_intent": ["proyectos"], "project_name": "Cloud Resume Challenge"}
+
+Chunk #7 (chars=226):
+El Cloud Resume Challenge incluye contador de visitas en tiempo real usando API Gateway, Lambda y DynamoDB. Infraestructura definida como código con Terraform y CI/CD con GitHub Actions para despliegue automático en cada push.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "cloud_resume_backend", "topic": ["serverless", "IaC", "CI/CD"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["API Gateway", "Lambda", "DynamoDB", "Terraform", "GitHub Actions"], "date_range": "2024/2024", "retrieval_intent": ["proyectos"], "project_name": "Cloud Resume Challenge"}
+
+Chunk #8 (chars=228):
+Modelo de ML para predicción de resultados de fútbol con modelos supervisados en Scikit-learn. Incluye ingeniería de características usando datos de equipos y jugadores, con visualización de resultados en dashboards de Power BI.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "football_prediction", "topic": ["machine learning", "predicción", "análisis de datos"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Python", "scikit-learn", "Power BI", "pandas"], "date_range": "2023/2024", "retrieval_intent": ["proyectos"], "project_name": "Modelo de Predicción de Fútbol"}
+
+Chunk #9 (chars=160):
+Desarrollo de aplicaciones móviles Android en Kotlin con arquitectura MVVM y principios de Clean Architecture, para código estructurado, testeable y mantenible.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "android_apps", "topic": ["desarrollo móvil", "Android", "arquitectura de software"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Kotlin", "Android", "MVVM"], "date_range": "2022/2023", "retrieval_intent": ["proyectos"], "project_name": "Aplicaciones Android"}
+
+Chunk #10 (chars=184):
+Juego multijugador en Unity con C# desarrollado de forma autodidacta como primer proyecto técnico. Incluyó integración de sistema de pagos y manejo de estado de sesión entre jugadores.
+METADATA: {"file_name": "project.jsonl", "doc_type": "project", "section": "unity_game", "topic": ["videojuegos", "autodidacta", "primer proyecto técnico"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Unity", "C#"], "date_range": "2020/2021", "retrieval_intent": ["proyectos"], "project_name": "Juego Multijugador Unity"}
+
+--- File: skills.jsonl ---
+Chunk #1 (chars=169):
+Lenguajes de programación: Python (principal), SQL, C++, Kotlin, C#, C, HTML y CSS. Python es el lenguaje principal para desarrollo de modelos ML, automatización y APIs.
+METADATA: {"file_name": "skills.jsonl", "doc_type": "skills", "section": "lenguajes_programacion", "topic": ["lenguajes de programación", "Python", "SQL"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Python", "SQL", "C++", "Kotlin", "C#", "C", "HTML", "CSS"], "date_range": "2020/2025", "retrieval_intent": ["skills", "tecnologias"]}
+
+Chunk #2 (chars=222):
+Habilidades en MLOps: diseño de pipelines de ML, experiment tracking con MLflow, versionado y evaluación de modelos. Experiencia en Prompt Engineering, IA generativa y construcción de sistemas RAG con LangChain y ChromaDB.
+METADATA: {"file_name": "skills.jsonl", "doc_type": "skills", "section": "mlops_ia_generativa", "topic": ["MLOps", "IA generativa", "RAG", "pipelines ML"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["MLflow", "LangChain", "ChromaDB", "Python"], "date_range": "2023/2025", "retrieval_intent": ["skills", "tecnologias"]}
+
+Chunk #3 (chars=208):
+Experiencia en servicios AWS: Lambda, S3, ECR, ECS, CloudFront, API Gateway, DynamoDB y CloudWatch. Uso de servicios gestionados para arquitecturas serverless, despliegue de modelos y monitoreo en producción.
+METADATA: {"file_name": "skills.jsonl", "doc_type": "skills", "section": "cloud_aws", "topic": ["AWS", "cloud computing", "serverless"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["AWS", "Lambda", "S3", "ECR", "ECS", "CloudFront", "API Gateway", "DynamoDB", "CloudWatch"], "date_range": "2023/2025", "retrieval_intent": ["skills", "tecnologias"]}
+
+Chunk #4 (chars=225):
+Habilidades DevOps: contenedorización con Docker, infraestructura como código con Terraform y automatización de pipelines CI/CD con GitHub Actions. Implementación de testing automático y despliegue continuo en entornos cloud.
+METADATA: {"file_name": "skills.jsonl", "doc_type": "skills", "section": "devops_cicd", "topic": ["DevOps", "CI/CD", "contenedorización", "IaC"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Docker", "Terraform", "GitHub Actions"], "date_range": "2023/2025", "retrieval_intent": ["skills", "tecnologias"]}
+
+Chunk #5 (chars=204):
+Desarrollo de APIs REST con FastAPI. Diseño de backends orientados a producción con rate limiting, manejo de errores estructurado, uso de variables de entorno y principio de menor privilegio en seguridad.
+METADATA: {"file_name": "skills.jsonl", "doc_type": "skills", "section": "backend_apis", "topic": ["backend", "APIs REST", "FastAPI", "seguridad"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["FastAPI", "Python", "REST APIs"], "date_range": "2023/2025", "retrieval_intent": ["skills", "tecnologias"]}
+
+Chunk #6 (chars=205):
+Bases de datos relacionales: MySQL y Oracle. Bases de datos NoSQL y vectoriales: Firebase y ChromaDB. Librerías de análisis de datos y ML: pandas, numpy, scikit-learn y XGBoost. Visualización con Power BI.
+METADATA: {"file_name": "skills.jsonl", "doc_type": "skills", "section": "bases_datos_y_datos", "topic": ["bases de datos", "machine learning", "análisis de datos"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["MySQL", "Oracle", "Firebase", "ChromaDB", "pandas", "numpy", "scikit-learn", "XGBoost", "Power BI"], "date_range": "2022/2025", "retrieval_intent": ["skills", "tecnologias"]}
+
+Chunk #7 (chars=211):
+Herramientas de desarrollo: Git, GitHub, Linux, VMware Workstation Pro, Cisco Packet Tracer y Pytest. Metodologías ágiles: Scrum y Kanban. Monitoreo con métricas custom, logs estructurados, dashboards y alertas.
+METADATA: {"file_name": "skills.jsonl", "doc_type": "skills", "section": "herramientas_metodologias", "topic": ["herramientas de desarrollo", "metodologías ágiles", "monitoreo"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["Git", "GitHub", "Linux", "VMware", "Pytest"], "date_range": "2022/2025", "retrieval_intent": ["skills"]}
+
+Chunk #8 (chars=213):
+Habilidades blandas: resolución de problemas, pensamiento analítico estructurado, comunicación técnica, aprendizaje autónomo, adaptabilidad y disciplina profesional. Idiomas: español (nativo), inglés (intermedio).
+METADATA: {"file_name": "skills.jsonl", "doc_type": "skills", "section": "habilidades_blandas_idiomas", "topic": ["habilidades blandas", "idiomas", "comunicación técnica"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2020/2025", "retrieval_intent": ["skills", "perfil"]}
+
+--- File: summary.jsonl ---
+Chunk #1 (chars=237):
+Estudiante de último año de Ingeniería en Sistemas Inteligentes con experiencia práctica en MLOps, IA generativa y cloud computing en AWS. Perfil orientado a la construcción de soluciones reales, documentadas y desplegadas en producción.
+METADATA: {"file_name": "summary.jsonl", "doc_type": "summary", "section": "perfil_general", "topic": ["perfil profesional", "MLOps", "cloud computing"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["AWS"], "date_range": "2022/2025", "retrieval_intent": ["perfil"]}
+
+Chunk #2 (chars=221):
+Experiencia práctica en diseño y despliegue de pipelines de machine learning, construcción de sistemas RAG y arquitecturas serverless en AWS. Uso de CI/CD, contenedorización con Docker y monitoreo en entornos productivos.
+METADATA: {"file_name": "summary.jsonl", "doc_type": "summary", "section": "capacidades_tecnicas", "topic": ["pipelines ML", "RAG", "arquitectura serverless", "CI/CD"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": ["AWS", "Docker", "FastAPI", "LangChain"], "date_range": "2023/2025", "retrieval_intent": ["skills", "tecnologias"]}
+
+Chunk #3 (chars=247):
+Metodología de trabajo basada en teoría aplicada (cursos oficiales de AWS, Google, Microsoft, Anthropic) combinada con desarrollo de proyectos reales. Capacidad demostrada de ejecutar sistemas completos de forma autónoma con enfoque en producción.
+METADATA: {"file_name": "summary.jsonl", "doc_type": "summary", "section": "metodologia", "topic": ["aprendizaje autónomo", "proyectos reales", "metodología"], "language": "es", "visibility": "public", "sensitivity": "low", "technology": [], "date_range": "2020/2025", "retrieval_intent": ["perfil"]}
+

@@ -25,6 +25,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langdetect import LangDetectException, detect
+import re
+from backend.ingest import RETRIEVAL_INTENT_MAP, VALID_RETRIEVAL_INTENTS
 
 from backend.config import Settings
 
@@ -52,13 +54,13 @@ PROMPT_ES = PromptTemplate(
     template=(
         "Eres el asistente personal de Joseph. "
         "Responde en español, de forma clara y profesional.\n"
-        "Reglas:"
+        "Reglas:\n"
         "- Si la pregunta trata sobre Joseph, su perfil, identidad, estudios, gustos, experiencia o proyectos, o desarrollos, trata de responder la pregunta, ya que si hay contenido disponible."
         "- Usa la información del contexto aunque esté expresada con sinónimos, pronombres o nombres completos parciales."
         "- No inventes datos."
-        "- Si tienes evidencia aunque sea poca, responde sino no"
+        "- Si tienes evidencia aunque sea poca, responde"
         "- Si no hay evidencia en el contexto, responde exactamente:"
-        '"No tengo esa información sobre Joseph."."\n\n'
+        '"No tengo esa información sobre Joseph. Sea más específico.".\n\n'
         "Contexto:\n{context}\n\n"
         "Pregunta: {question}\n"
         "Respuesta:"
@@ -70,12 +72,12 @@ PROMPT_EN = PromptTemplate(
     template=(
         "You are Joseph's personal assistant. "
         "Answer in English, clearly and professionally.\n"
-        "Rules:"
+        "Rules:\n"
         "- If the question is about Joseph, his profile, identity, education, interests, experience or projects, or developments, try to answer the question, as there may be relevant information available."
         "- Use the information in the context even if it's expressed with synonyms, pronouns or partial full names."
         "- Do not make up data."
-        "If the information is not in the context, respond exactly: "
-        '"I don\'t have that information about Joseph."\n\n'
+        "- If the information is not in the context, respond exactly: "
+        '"I don\'t have that information about Joseph. Please be more specific."\n\n'
         "Context:\n{context}\n\n"
         "Question: {question}\n"
         "Answer:"
@@ -119,6 +121,20 @@ _FALLBACK = {
     "es": "No encontré información relevante en mis documentos para esa pregunta.",
     "en": "I couldn't find relevant information in my documents to answer that.",
 }
+
+
+def map_query_to_intents(query: str) -> list[str]:
+    tokens = re.findall(r"\w+", query.lower())
+    mapped: list[str] = []
+    for t in tokens:
+        if t in RETRIEVAL_INTENT_MAP:
+            mapped.append(RETRIEVAL_INTENT_MAP[t])
+    # mantener orden y unicidad, y filtrar por intents válidos
+    normalized: list[str] = []
+    for m in mapped:
+        if m not in normalized and m in VALID_RETRIEVAL_INTENTS:
+            normalized.append(m)
+    return normalized
 
 
 class RAGChain:
@@ -213,6 +229,8 @@ class RAGChain:
             # En ese caso, español es el default seguro para este proyecto.
             logger.warning("Language detection failed for short/ambiguous input.")
             return "es"
+        
+        
 
     @staticmethod
     def _format_docs(docs: list) -> str:
@@ -287,11 +305,14 @@ class RAGChain:
         start = time.monotonic()
         lang = self._detect_language(question)
 
-        # --- Paso 1: Retrieve ---
-        # Obtener raw (doc, score) y normalizar scores a [0,1]
-        # Asumimos que los scores crudos son similitud coseno en [-1,1].
+        # --- Paso 1: Retrieve (semántico + filtrado por metadata) ---
+        # Mapear query a intents detectados
+        intents = map_query_to_intents(question)
+
+        # Pedir más candidatos para tener margen al filtrar por metadata
+        candidate_k = max(RETRIEVER_K * 4, 12)
         raw_pairs = self._vectorstore.similarity_search_with_relevance_scores(
-            question, k=RETRIEVER_K
+            question, k=candidate_k
         )
 
         normalized_pairs = []
@@ -304,11 +325,30 @@ class RAGChain:
             s_norm = (s + 1.0) / 2.0
             normalized_pairs.append((doc, s_norm))
 
-        # Filtrar por umbral normalizado (0.15) y mantener máximo k resultados
+        # Umbral base para considerar candidatos semánticos
         threshold = 0.18
-        # ordenar por score normalizado descendente y limitar a k
         normalized_pairs.sort(key=lambda t: t[1], reverse=True)
-        docs = [doc for doc, score in normalized_pairs if score >= threshold][:RETRIEVER_K]
+
+        def doc_matches_intents(doc, intents_list: list[str]) -> bool:
+            if not intents_list:
+                return True
+            meta_intents = doc.metadata.get("retrieval_intent", [])
+            if isinstance(meta_intents, str):
+                meta_intents = [meta_intents]
+            meta_intents = [str(x).strip().lower() for x in meta_intents]
+            return any(i in meta_intents for i in intents_list)
+
+        # Si la query mapeó a intents, intentar filtrar por esos intents
+        if intents:
+            filtered = [(d, s) for d, s in normalized_pairs if doc_matches_intents(d, intents) and s >= threshold]
+            if filtered:
+                filtered.sort(key=lambda t: t[1], reverse=True)
+                docs = [d for d, _ in filtered][:RETRIEVER_K]
+            else:
+                # Fallback semántico si el filtrado por metadata no devolvió nada
+                docs = [d for d, s in normalized_pairs if s >= threshold][:RETRIEVER_K]
+        else:
+            docs = [d for d, s in normalized_pairs if s >= threshold][:RETRIEVER_K]
 
         # --- Paso 2: Fallback si ChromaDB no encontró nada ---
         # Esto cubre el bug del EPIC-3: "edge case si no hay resultados relevantes"
