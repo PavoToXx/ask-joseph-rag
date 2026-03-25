@@ -41,7 +41,7 @@ RETRIEVER_K: int = 3
 
 # Temperatura baja = respuestas más deterministas y factuales.
 # Para un asistente de portfolio no queremos creatividad, queremos precisión.
-LLM_TEMPERATURE: float = 0.2
+LLM_TEMPERATURE: float = 1
 
 # ------------------------------------------------------------------ #
 #  Prompt templates — definidos como constantes, no strings inline    #
@@ -52,9 +52,13 @@ PROMPT_ES = PromptTemplate(
     template=(
         "Eres el asistente personal de Joseph. "
         "Responde en español, de forma clara y profesional.\n"
-        "Usa SOLO la información del contexto proporcionado. "
-        "Si la información no está en el contexto, responde exactamente: "
-        '"No tengo esa información sobre Joseph."\n\n'
+        "Reglas:"
+        "- Si la pregunta trata sobre Joseph, su perfil, identidad, estudios, gustos, experiencia o proyectos, o desarrollos, trata de responder la pregunta, ya que si hay contenido disponible."
+        "- Usa la información del contexto aunque esté expresada con sinónimos, pronombres o nombres completos parciales."
+        "- No inventes datos."
+        "- Si tienes evidencia aunque sea poca, responde sino no"
+        "- Si no hay evidencia en el contexto, responde exactamente:"
+        '"No tengo esa información sobre Joseph."."\n\n'
         "Contexto:\n{context}\n\n"
         "Pregunta: {question}\n"
         "Respuesta:"
@@ -66,7 +70,10 @@ PROMPT_EN = PromptTemplate(
     template=(
         "You are Joseph's personal assistant. "
         "Answer in English, clearly and professionally.\n"
-        "Use ONLY the context provided. "
+        "Rules:"
+        "- If the question is about Joseph, his profile, identity, education, interests, experience or projects, or developments, try to answer the question, as there may be relevant information available."
+        "- Use the information in the context even if it's expressed with synonyms, pronouns or partial full names."
+        "- Do not make up data."
         "If the information is not in the context, respond exactly: "
         '"I don\'t have that information about Joseph."\n\n'
         "Context:\n{context}\n\n"
@@ -74,6 +81,37 @@ PROMPT_EN = PromptTemplate(
         "Answer:"
     ),
 )
+# PROMPT_ES = PromptTemplate(
+#     input_variables=["context", "question"],
+#     template=(
+#         "Eres el asistente personal de Joseph. "
+#         "Responde en español, de forma clara y profesional.\n"
+#         "Reglas:\n"
+#         "- Si la pregunta trata sobre Joseph, su perfil, identidad, estudios, gustos, experiencia o proyectos, interpreta la pregunta como una consulta sobre su información personal.\n"
+#         "- Usa la información del contexto aunque esté expresada con sinónimos, pronombres o nombres completos parciales.\n"
+#         "- No inventes datos.\n"
+#         "- Si no hay evidencia suficiente en el contexto, responde exactamente: \"No tengo esa información sobre Joseph.\"\n\n"
+#         "Contexto:\n{context}\n\n"
+#         "Pregunta: {question}\n"
+#         "Respuesta:"
+#     ),
+# )
+
+# PROMPT_EN = PromptTemplate(
+#     input_variables=["context", "question"],
+#     template=(
+#         "You are Joseph's personal assistant. "
+#         "Answer in English, clearly and professionally.\n"
+#         "Rules:\n"
+#         "- If the question is about Joseph, his profile, identity, education, interests, experience or projects, interpret the question as a query about his personal information.\n"
+#         "- Use the information in the context even if it's expressed with synonyms, pronouns or partial full names.\n"
+#         "- Do not make up data.\n"
+#         "- If the information is not in the context, respond exactly: \"I don't have that information about Joseph.\"\n\n"
+#         "Context:\n{context}\n\n"
+#         "Question: {question}\n"
+#         "Answer:"
+#     ),
+# )
 
 # Respuestas de fallback cuando ChromaDB no encuentra nada relevante.
 # Esto cubre el bug del EPIC-3: "edge case si ChromaDB no tiene resultados".
@@ -204,7 +242,7 @@ class RAGChain:
             Lista de strings con nombres de fuente únicos.
         """
         return list(
-            {doc.metadata.get("source", "Documento desconocido") for doc in docs}
+            {doc.metadata.get("file_name", "Documento desconocido") for doc in docs}
         )
 
     # ---------------------------------------------------------------- #
@@ -250,14 +288,27 @@ class RAGChain:
         lang = self._detect_language(question)
 
         # --- Paso 1: Retrieve ---
-        retriever = self._vectorstore.as_retriever(
-            search_type="similarity_score_threshold",
-            search_kwargs={
-                "k": RETRIEVER_K,
-                "score_threshold": 0.25,
-            },
+        # Obtener raw (doc, score) y normalizar scores a [0,1]
+        # Asumimos que los scores crudos son similitud coseno en [-1,1].
+        raw_pairs = self._vectorstore.similarity_search_with_relevance_scores(
+            question, k=RETRIEVER_K
         )
-        docs = retriever.invoke(question)
+
+        normalized_pairs = []
+        for doc, raw_score in raw_pairs:
+            try:
+                s = float(raw_score)
+            except Exception:
+                s = 0.0
+            # Normalizar de [-1,1] a [0,1]
+            s_norm = (s + 1.0) / 2.0
+            normalized_pairs.append((doc, s_norm))
+
+        # Filtrar por umbral normalizado (0.15) y mantener máximo k resultados
+        threshold = 0.18
+        # ordenar por score normalizado descendente y limitar a k
+        normalized_pairs.sort(key=lambda t: t[1], reverse=True)
+        docs = [doc for doc, score in normalized_pairs if score >= threshold][:RETRIEVER_K]
 
         # --- Paso 2: Fallback si ChromaDB no encontró nada ---
         # Esto cubre el bug del EPIC-3: "edge case si no hay resultados relevantes"
