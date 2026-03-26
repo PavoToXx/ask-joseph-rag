@@ -11,6 +11,7 @@ Patrones aplicados:
 - /health endpoint: monitoreo y readiness checks en Azure.
 """
 import logging
+import json
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -18,6 +19,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -245,3 +247,47 @@ async def ask(
         tokens_used=result["tokens_used"],
         request_id=request_id,
     )
+
+
+@app.post(
+    "/ask/stream",
+    tags=["RAG"],
+    status_code=status.HTTP_200_OK,
+)
+@limiter.limit("10/hour")
+async def ask_stream(
+    request: Request,
+    body: QuestionRequest,
+    chain: RAGChainDep,
+) -> StreamingResponse:
+    """
+    Responde una pregunta sobre Joseph usando streaming de texto.
+
+    Devuelve texto plano en chunks para que el frontend lo renderice
+    progresivamente, estilo chat en tiempo real.
+    """
+    request_id = str(uuid.uuid4())[:8]
+    logger.info(
+        "Streaming request received. request_id='%s' endpoint='/ask/stream'",
+        request_id,
+    )
+
+    def generate():
+        try:
+            for event in chain.stream_answer(body.question):
+                event_type = event.get("type", "chunk")
+                payload = {k: v for k, v in event.items() if k != "type"}
+                yield (
+                    f"event: {event_type}\n"
+                    f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                )
+        except Exception:
+            logger.error(
+                "Unhandled streaming error. request_id='%s'", request_id
+            )
+            yield (
+                "event: error\n"
+                'data: {"message": "Ocurrió un error al procesar tu pregunta. Intenta de nuevo."}\n\n'
+            )
+
+    return StreamingResponse(generate(), media_type="text/event-stream")

@@ -220,3 +220,5 @@ test_temp/
 docs_temp/
 
 scripts/
+
+frontend/assets/*
