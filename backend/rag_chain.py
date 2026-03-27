@@ -16,7 +16,7 @@ Flujo:
 """
 import logging
 import time
-from typing import Optional
+from typing import Any, Iterator, Optional
 
 from pydantic import SecretStr  # requerido por langchain-openai para api_key
 from langchain_chroma import Chroma
@@ -203,6 +203,7 @@ class RAGChain:
             api_key=secret_key,
             api_version=self._settings.azure_openai_api_version,
             temperature=LLM_TEMPERATURE,
+            streaming=True,
         )
 
         self._initialized = True
@@ -267,6 +268,74 @@ class RAGChain:
     #  API pública                                                       #
     # ---------------------------------------------------------------- #
 
+    def _ensure_initialized(self) -> None:
+        if not self._initialized:
+            raise RuntimeError(
+                "RAGChain called before initialize(). "
+                "Revisa el lifespan de FastAPI."
+            )
+
+        assert self._vectorstore is not None, "vectorstore no inicializado"
+        assert self._llm is not None, "llm no inicializado"
+
+    def _retrieve_documents(self, question: str) -> tuple[list, str, float]:
+        self._ensure_initialized()
+
+        start = time.monotonic()
+        lang = self._detect_language(question)
+
+        assert self._vectorstore is not None, "vectorstore no inicializado"
+
+        # --- Paso 1: Retrieve (semántico + filtrado por metadata) ---
+        intents = map_query_to_intents(question)
+        candidate_k = max(RETRIEVER_K * 4, 12)
+        raw_pairs = self._vectorstore.similarity_search_with_relevance_scores(
+            question, k=candidate_k
+        )
+
+        normalized_pairs = []
+        for doc, raw_score in raw_pairs:
+            try:
+                s = float(raw_score)
+            except Exception:
+                s = 0.0
+            s_norm = (s + 1.0) / 2.0
+            normalized_pairs.append((doc, s_norm))
+
+        threshold = 0.15
+        normalized_pairs.sort(key=lambda t: t[1], reverse=True)
+
+        def doc_matches_intents(doc, intents_list: list[str]) -> bool:
+            if not intents_list:
+                return True
+            meta_intents = doc.metadata.get("retrieval_intent", [])
+            if isinstance(meta_intents, str):
+                meta_intents = [meta_intents]
+            meta_intents = [str(x).strip().lower() for x in meta_intents]
+            return any(i in meta_intents for i in intents_list)
+
+        if intents:
+            filtered = [
+                (d, s)
+                for d, s in normalized_pairs
+                if doc_matches_intents(d, intents) and s >= threshold
+            ]
+            if filtered:
+                filtered.sort(key=lambda t: t[1], reverse=True)
+                docs = [d for d, _ in filtered][:RETRIEVER_K]
+            else:
+                docs = [d for d, s in normalized_pairs if s >= threshold][:RETRIEVER_K]
+        else:
+            docs = [d for d, s in normalized_pairs if s >= threshold][:RETRIEVER_K]
+
+        return docs, lang, start
+
+    def _build_chain(self, lang: str):
+        self._ensure_initialized()
+        assert self._llm is not None, "llm no inicializado"
+        prompt = PROMPT_EN if lang == "en" else PROMPT_ES
+        return prompt | self._llm | StrOutputParser()
+
     def get_answer(self, question: str) -> dict:
         """
         Ejecuta el pipeline RAG completo para una pregunta.
@@ -289,66 +358,7 @@ class RAGChain:
         Raises:
             RuntimeError: Si se llama antes de initialize().
         """
-        if not self._initialized:
-            raise RuntimeError(
-                "RAGChain.get_answer() llamado antes de initialize(). "
-                "Revisa el lifespan de FastAPI."
-            )
-
-        # assert le dice a Pylance: "a partir de aquí _vectorstore y _llm
-        # son definitivamente no-None". En runtime, si initialize() se llamó
-        # correctamente, estos assert nunca fallan — son solo para el type checker.
-        assert self._vectorstore is not None, "vectorstore no inicializado"
-        assert self._llm is not None, "llm no inicializado"
-
-        # time.monotonic() es más preciso que time.time() para medir duraciones.
-        start = time.monotonic()
-        lang = self._detect_language(question)
-
-        # --- Paso 1: Retrieve (semántico + filtrado por metadata) ---
-        # Mapear query a intents detectados
-        intents = map_query_to_intents(question)
-
-        # Pedir más candidatos para tener margen al filtrar por metadata
-        candidate_k = max(RETRIEVER_K * 4, 12)
-        raw_pairs = self._vectorstore.similarity_search_with_relevance_scores(
-            question, k=candidate_k
-        )
-
-        normalized_pairs = []
-        for doc, raw_score in raw_pairs:
-            try:
-                s = float(raw_score)
-            except Exception:
-                s = 0.0
-            # Normalizar de [-1,1] a [0,1]
-            s_norm = (s + 1.0) / 2.0
-            normalized_pairs.append((doc, s_norm))
-
-        # Umbral base para considerar candidatos semánticos
-        threshold = 0.18
-        normalized_pairs.sort(key=lambda t: t[1], reverse=True)
-
-        def doc_matches_intents(doc, intents_list: list[str]) -> bool:
-            if not intents_list:
-                return True
-            meta_intents = doc.metadata.get("retrieval_intent", [])
-            if isinstance(meta_intents, str):
-                meta_intents = [meta_intents]
-            meta_intents = [str(x).strip().lower() for x in meta_intents]
-            return any(i in meta_intents for i in intents_list)
-
-        # Si la query mapeó a intents, intentar filtrar por esos intents
-        if intents:
-            filtered = [(d, s) for d, s in normalized_pairs if doc_matches_intents(d, intents) and s >= threshold]
-            if filtered:
-                filtered.sort(key=lambda t: t[1], reverse=True)
-                docs = [d for d, _ in filtered][:RETRIEVER_K]
-            else:
-                # Fallback semántico si el filtrado por metadata no devolvió nada
-                docs = [d for d, s in normalized_pairs if s >= threshold][:RETRIEVER_K]
-        else:
-            docs = [d for d, s in normalized_pairs if s >= threshold][:RETRIEVER_K]
+        docs, lang, start = self._retrieve_documents(question)
 
         # --- Paso 2: Fallback si ChromaDB no encontró nada ---
         # Esto cubre el bug del EPIC-3: "edge case si no hay resultados relevantes"
@@ -363,12 +373,8 @@ class RAGChain:
             }
 
         # --- Paso 3: Seleccionar prompt según idioma ---
-        prompt = PROMPT_EN if lang == "en" else PROMPT_ES
-
         # --- Paso 4: LCEL chain ---
-        # Reemplaza al deprecado RetrievalQA.
-        # prompt | llm | StrOutputParser() es la composición estándar en LangChain 0.3+.
-        chain = prompt | self._llm | StrOutputParser()
+        chain = self._build_chain(lang)
 
         # --- Paso 5: Invocar con tracking de tokens ---
         tokens_used = 0
@@ -408,4 +414,65 @@ class RAGChain:
             "sources": sources,
             "latency_ms": latency_ms,
             "tokens_used": tokens_used,
+        }
+
+    def stream_answer(self, question: str) -> Iterator[dict[str, Any]]:
+        """
+        Ejecuta el pipeline RAG y emite la respuesta en chunks de texto.
+
+        Esto permite a FastAPI exponer una StreamingResponse y a Streamlit
+        renderizar el contenido progresivamente.
+        """
+        docs, lang, start = self._retrieve_documents(question)
+
+        if not docs:
+            logger.info("No relevant documents found. Returning streaming fallback.")
+            fallback_lang = "en" if lang == "en" else "es"
+            latency_ms = int((time.monotonic() - start) * 1000)
+            yield {"type": "chunk", "content": _FALLBACK[fallback_lang]}
+            yield {
+                "type": "meta",
+                "latency_ms": latency_ms,
+                "tokens_used": 0,
+                "sources": [],
+            }
+            return
+
+        chain = self._build_chain(lang)
+        sources = self._extract_sources(docs)
+        streamed_text = ""
+        tokens_used = 0
+
+        try:
+            with get_openai_callback() as cb:
+                for chunk in chain.stream(
+                    {
+                        "context": self._format_docs(docs),
+                        "question": question,
+                    }
+                ):
+                    if not chunk:
+                        continue
+                    streamed_text += chunk
+                    yield {"type": "chunk", "content": chunk}
+                tokens_used = cb.total_tokens
+        except Exception as e:
+            logger.error(
+                "LLM streaming failed. error_type='%s'", type(e).__name__
+            )
+            raise
+
+        latency_ms = int((time.monotonic() - start) * 1000)
+        logger.info(
+            "Streaming query processed. latency_ms=%d chars=%d sources=%d lang='%s'",
+            latency_ms,
+            len(streamed_text),
+            len(sources),
+            lang,
+        )
+        yield {
+            "type": "meta",
+            "latency_ms": latency_ms,
+            "tokens_used": tokens_used,
+            "sources": sources,
         }

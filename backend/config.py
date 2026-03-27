@@ -77,6 +77,9 @@ class Settings(BaseSettings):
         "10/hour", description="Rate limit para el endpoint /ask"
     )
 
+    # streamlit
+    backend_url: str = Field(..., description="URL del backend")
+
     # pydantic-settings config: lee desde .env en desarrollo local
     model_config = {
         "env_file": ".env",

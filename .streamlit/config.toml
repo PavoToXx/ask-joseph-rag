@@ -1,0 +1,31 @@
+[theme.light]
+primaryColor= "#1EB592"
+backgroundColor="#FFFFFF"
+secondaryBackgroundColor="#DFF5EF"
+textColor="#2F7F6E"
+
+linkColor="#15967A"
+codeTextColor="#0F766E"
+codeBackgroundColor="#ECFDF5"
+borderColor="#D1FAE5"
+dataframeBorderColor="#E5E7EB"
+dataframeHeaderBackgroundColor="#F9FAFB"
+
+[theme.dark]
+primaryColor="#0EA5C6"
+backgroundColor="#061F2C"
+secondaryBackgroundColor="#0A2A3A"
+textColor="#E5E7EB"
+
+linkColor="#38BDF8"
+
+codeTextColor="#67E8F9"
+codeBackgroundColor="#082F3F"
+
+borderColor="#0F3A4A"
+
+dataframeBorderColor="#131617"
+dataframeHeaderBackgroundColor="#0C2F40"
+
+redColor = "#0EA5C6"
+orangeColor = "#EAF5F2"
