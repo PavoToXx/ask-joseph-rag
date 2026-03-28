@@ -91,11 +91,12 @@ jobs:
       - name: Push image to Azure Container Registry
         shell: bash
         env:
-          AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+          ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
           IMAGE_NAME: ${{ steps.image.outputs.image_name }}
         run: |
           set -euo pipefail
-          az acr login --name "${AZURE_ACR_NAME}"
+          # Login using the full server URL — no subscription lookup needed
+          az acr login --login-server "${ACR_LOGIN_SERVER}"
           docker push "${IMAGE_NAME}"
 
       - name: Grant App Service AcrPull on ACR
