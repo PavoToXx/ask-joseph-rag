@@ -92,21 +92,10 @@ jobs:
         shell: bash
         env:
           AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
-          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
           IMAGE_NAME: ${{ steps.image.outputs.image_name }}
         run: |
           set -euo pipefail
-
-          # Get ACR token and login via docker directly — no ARM lookup needed
-          # Username is always this UUID for ACR token auth (Azure standard)
-          az acr get-login-password \
-            --name "${AZURE_ACR_NAME}" \
-            --resource-group "${AZURE_RESOURCE_GROUP}" | \
-          docker login "${ACR_LOGIN_SERVER}" \
-            --username "00000000-0000-0000-0000-000000000000" \
-            --password-stdin
-
+          az acr login --name "${AZURE_ACR_NAME}"
           docker push "${IMAGE_NAME}"
 
       - name: Grant App Service AcrPull on ACR
