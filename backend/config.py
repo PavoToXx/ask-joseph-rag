@@ -1,16 +1,9 @@
-# backend/config.py
-"""
-Configuración centralizada de la aplicación.
+"""Centralized application settings."""
 
-Por qué pydantic-settings:
-- Valida que todas las variables de entorno requeridas existen AL STARTUP.
-- Si falta AZURE_OPENAI_API_KEY, la app falla inmediatamente con un error
-  claro — no a mitad de una request del usuario.
-- Nunca uses os.getenv() directo en los módulos de negocio.
-"""
 import logging
 from enum import Enum
 from functools import lru_cache
+from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -19,16 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class Environment(str, Enum):
-    """
-    Controla qué método de autenticación usa boto3 para AWS.
-
-    - LOCAL: AWS CLI profile en ~/.aws/credentials (nunca en repo)
-    - GITHUB_ACTIONS: OIDC completo vía aws-actions/configure-aws-credentials,
-      inyecta credenciales temporales como env vars, boto3 las detecta solo.
-    - AZURE: Managed Identity de Azure App Service asume un rol en AWS vía
-      AssumeRoleWithWebIdentity. boto3 detecta AWS_WEB_IDENTITY_TOKEN_FILE
-      automáticamente — cero API keys en Azure.
-    """
+    """Execution environments supported by the app."""
 
     LOCAL = "local"
     GITHUB_ACTIONS = "github_actions"
@@ -36,91 +20,91 @@ class Environment(str, Enum):
 
 
 class Settings(BaseSettings):
-    """Todas las configuraciones de la app, cargadas desde env vars o .env."""
+    """Application settings loaded from env vars or a local .env file."""
 
-    # --- Azure OpenAI ---
-    # Field(...) significa "requerido". Si no existe en el entorno, falla al startup.
-    azure_openai_endpoint: str = Field(..., description="URL del recurso Azure OpenAI")
-    azure_openai_api_key: str = Field(..., description="API key de Azure OpenAI")
+    azure_openai_endpoint: str = Field(..., description="Azure OpenAI resource URL")
+    azure_openai_api_key: str = Field(..., description="Azure OpenAI API key")
     azure_openai_api_version: str = Field(
-        "2024-02-01", description="Versión de la API de Azure OpenAI"
+        "2024-02-01", description="Azure OpenAI API version"
     )
     azure_openai_embedding_deployment: str = Field(
-        "text-embedding-3-small", description="Nombre del deployment de embeddings"
+        "text-embedding-3-small",
+        description="Azure OpenAI embedding deployment name",
     )
     azure_openai_chat_deployment: str = Field(
-        "gpt-4o-mini", description="Nombre del deployment del LLM"
+        "gpt-4o-mini", description="Azure OpenAI chat deployment name"
     )
 
-    # --- AWS ---
-    aws_region: str = Field("us-east-1", description="Región de AWS")
-    aws_bucket_name: str = Field(..., description="Nombre del bucket S3 para documentos")
+    aws_region: str = Field("us-east-1", description="AWS region")
+    aws_bucket_name: str = Field(..., description="S3 bucket for source documents")
+    aws_chroma_bucket_name: Optional[str] = Field(
+        None,
+        description="Optional S3 bucket for persisted ChromaDB. Falls back to AWS_BUCKET_NAME.",
+    )
+    aws_chroma_prefix: Optional[str] = Field(
+        None,
+        description="S3 prefix where the persisted ChromaDB directory is stored.",
+    )
     aws_profile: str = Field(
         "default",
-        description="AWS CLI profile (solo se usa cuando ENVIRONMENT=local)",
+        description="AWS CLI profile used only when ENVIRONMENT=local",
     )
 
-    # --- App ---
     environment: Environment = Field(
-        Environment.LOCAL, description="Entorno de ejecución"
+        Environment.LOCAL, description="Execution environment"
     )
-    chroma_path: str = Field("./chroma_db", description="Ruta local de ChromaDB")
-    # Nombre de la colección donde ingest.py guardó los documentos.
-    # Cámbialo aquí o en .env si tu ingest usó otro nombre.
+    require_chroma_sync: bool = Field(
+        False,
+        description="If true, startup.py rebuilds ChromaDB from source documents in S3 before the app starts.",
+    )
+    chroma_path: str = Field("./chroma_db", description="Local ChromaDB path")
     chroma_collection_name: str = Field(
-        "ask-joseph-docs", description="Nombre de la colección en ChromaDB"
+        "ask-joseph-docs", description="Chroma collection name"
     )
     max_question_length: int = Field(
-        500, description="Máximo de caracteres permitidos en una pregunta"
+        500, description="Maximum question length in characters"
     )
-    rate_limit: str = Field(
-        "10/hour", description="Rate limit para el endpoint /ask"
-    )
+    rate_limit: str = Field("10/hour", description="Rate limit for /ask")
+    backend_url: str = Field(..., description="Backend URL used by Streamlit")
 
-    # streamlit
-    backend_url: str = Field(..., description="URL del backend")
-
-    # pydantic-settings config: lee desde .env en desarrollo local
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
-        "case_sensitive": False,  # AZURE_OPENAI_KEY y azure_openai_key son equivalentes
+        "case_sensitive": False,
     }
 
     @field_validator("azure_openai_endpoint")
     @classmethod
-    def validate_endpoint_format(cls, v: str) -> str:
-        """Valida que el endpoint tenga formato correcto y normaliza trailing slash."""
-        if not v.startswith("https://"):
+    def validate_endpoint_format(cls, value: str) -> str:
+        """Ensure the endpoint is HTTPS and normalized."""
+        if not value.startswith("https://"):
             raise ValueError(
                 "AZURE_OPENAI_ENDPOINT debe comenzar con https://. "
-                f"Valor recibido: '{v[:20]}...'"
+                f"Valor recibido: '{value[:20]}...'"
             )
-        return v.rstrip("/")  # normaliza: evita doble slash en las llamadas a la API
+        return value.rstrip("/")
 
     @field_validator("max_question_length")
     @classmethod
-    def validate_max_length(cls, v: int) -> int:
-        """Previene configuraciones que anulen el rate limiting por tamaño."""
-        if v < 10 or v > 2000:
+    def validate_max_length(cls, value: int) -> int:
+        """Guardrail for user input limits."""
+        if value < 10 or value > 2000:
             raise ValueError("MAX_QUESTION_LENGTH debe estar entre 10 y 2000.")
-        return v
+        return value
+
+    @field_validator("aws_chroma_prefix")
+    @classmethod
+    def normalize_chroma_prefix(cls, value: Optional[str]) -> Optional[str]:
+        """Normalize optional S3 prefixes to a stable form."""
+        if value is None:
+            return None
+
+        normalized = value.strip().strip("/")
+        return normalized or None
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """
-    Retorna la instancia singleton de Settings.
-
-    lru_cache garantiza que pydantic-settings lee el .env solo una vez,
-    no en cada request. Úsala con FastAPI Depends().
-
-    Returns:
-        Settings: Configuración validada de la aplicación.
-    """
+    """Return a cached, validated Settings instance."""
     logger.info("Loading application settings...")
-    # type: ignore[call-arg] — Pylance no sabe que pydantic-settings sobreescribe
-    # __init__ para leer los valores desde variables de entorno y .env.
-    # En runtime no se pasan argumentos: Settings() lee AZURE_OPENAI_API_KEY,
-    # AWS_S3_BUCKET, etc. del entorno automáticamente. No es un error real.
     return Settings()  # type: ignore[call-arg]

@@ -1,0 +1,194 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AZURE_CORE_OUTPUT: none
+  IMAGE_REPOSITORY: ask-joseph-rag
+  CONTAINER_PORT: "8501"
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Azure login with OIDC
+        uses: azure/login@a457da9
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Validate workflow inputs
+        shell: bash
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+          AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+        run: |
+          set -euo pipefail
+
+          required_vars=(
+            AZURE_RESOURCE_GROUP
+            AZURE_WEBAPP_NAME
+            AZURE_ACR_NAME
+          )
+
+          for var_name in "${required_vars[@]}"; do
+            if [[ -z "${!var_name:-}" ]]; then
+              echo "Missing required GitHub variable: ${var_name}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Resolve image metadata
+        id: image
+        shell: bash
+        env:
+          AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+          AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+          APP_HEALTHCHECK_URL: ${{ vars.APP_HEALTHCHECK_URL }}
+        run: |
+          set -euo pipefail
+
+          login_server="$(az acr show --name "${AZURE_ACR_NAME}" --query loginServer --output tsv)"
+          image_tag="sha-${GITHUB_SHA}"
+          image_name="${login_server}/${IMAGE_REPOSITORY}:${image_tag}"
+
+          if [[ -n "${APP_HEALTHCHECK_URL:-}" ]]; then
+            health_url="${APP_HEALTHCHECK_URL}"
+          else
+            health_url="https://${AZURE_WEBAPP_NAME}.azurewebsites.net/health"
+          fi
+
+          {
+            echo "login_server=${login_server}"
+            echo "image_name=${image_name}"
+            echo "health_url=${health_url}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Build Docker image
+        shell: bash
+        env:
+          IMAGE_NAME: ${{ steps.image.outputs.image_name }}
+        run: |
+          set -euo pipefail
+          docker build --pull --tag "${IMAGE_NAME}" .
+
+      - name: Push image to Azure Container Registry
+        shell: bash
+        env:
+          AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+          IMAGE_NAME: ${{ steps.image.outputs.image_name }}
+        run: |
+          set -euo pipefail
+          az acr login --name "${AZURE_ACR_NAME}"
+          docker push "${IMAGE_NAME}"
+
+      - name: Grant App Service AcrPull on ACR
+        shell: bash
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+          AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+        run: |
+          set -euo pipefail
+
+          principal_id="$(az webapp identity assign \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --name "${AZURE_WEBAPP_NAME}" \
+            --query principalId \
+            --output tsv)"
+
+          acr_id="$(az acr show --name "${AZURE_ACR_NAME}" --query id --output tsv)"
+
+          assignment_count="$(az role assignment list \
+            --assignee-object-id "${principal_id}" \
+            --scope "${acr_id}" \
+            --query "[?roleDefinitionName=='AcrPull'] | length(@)" \
+            --output tsv)"
+
+          if [[ "${assignment_count}" == "0" ]]; then
+            az role assignment create \
+              --assignee-object-id "${principal_id}" \
+              --assignee-principal-type ServicePrincipal \
+              --scope "${acr_id}" \
+              --role "AcrPull" \
+              --only-show-errors
+          fi
+
+          az webapp config set \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --name "${AZURE_WEBAPP_NAME}" \
+            --generic-configurations '{"acrUseManagedIdentityCreds": true}' \
+            --only-show-errors
+
+      - name: Deploy container to App Service
+        shell: bash
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+          IMAGE_NAME: ${{ steps.image.outputs.image_name }}
+          LOGIN_SERVER: ${{ steps.image.outputs.login_server }}
+        run: |
+          set -euo pipefail
+
+          az webapp config appsettings set \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --name "${AZURE_WEBAPP_NAME}" \
+            --settings \
+              WEBSITES_PORT="${CONTAINER_PORT}" \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+              ENVIRONMENT=azure \
+            --only-show-errors
+
+          az webapp config container set \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --name "${AZURE_WEBAPP_NAME}" \
+            --container-image-name "${IMAGE_NAME}" \
+            --container-registry-url "https://${LOGIN_SERVER}" \
+            --only-show-errors
+
+          az webapp restart \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --name "${AZURE_WEBAPP_NAME}" \
+            --only-show-errors
+
+      - name: Smoke test health endpoint
+        shell: bash
+        env:
+          HEALTH_URL: ${{ steps.image.outputs.health_url }}
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..20}; do
+            status_code="$(curl --silent --show-error --output /dev/null --write-out "%{http_code}" "${HEALTH_URL}" || true)"
+
+            if [[ "${status_code}" == "200" ]]; then
+              exit 0
+            fi
+
+            sleep 15
+          done
+
+          echo "Smoke test failed for ${HEALTH_URL}" >&2
+          exit 1

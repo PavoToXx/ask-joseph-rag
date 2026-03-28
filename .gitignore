@@ -213,7 +213,7 @@ chroma_db/
 docs/*
 
 # Variables de entorno
-.env
+.env.*
 
 test_temp/
 
