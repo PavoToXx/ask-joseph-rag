@@ -43,7 +43,6 @@ jobs:
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
           AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
-          AZURE_ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
         run: |
           set -euo pipefail
 
@@ -51,7 +50,6 @@ jobs:
             AZURE_RESOURCE_GROUP
             AZURE_WEBAPP_NAME
             AZURE_ACR_NAME
-            AZURE_ACR_LOGIN_SERVER
           )
 
           for var_name in "${required_vars[@]}"; do
@@ -65,17 +63,24 @@ jobs:
         id: image
         shell: bash
         env:
-          ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
           AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
         run: |
           set -euo pipefail
 
+          acr_login_server="$(az acr show \
+            --name "${AZURE_ACR_NAME}" \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --query loginServer \
+            --output tsv)"
+
           image_tag="sha-${GITHUB_SHA}"
-          image_name="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${image_tag}"
+          image_name="${acr_login_server}/${IMAGE_REPOSITORY}:${image_tag}"
           health_url="https://${AZURE_WEBAPP_NAME}.azurewebsites.net/health"
 
           {
-            echo "login_server=${ACR_LOGIN_SERVER}"
+            echo "login_server=${acr_login_server}"
             echo "image_name=${image_name}"
             echo "health_url=${health_url}"
           } >> "${GITHUB_OUTPUT}"
@@ -92,7 +97,7 @@ jobs:
         shell: bash
         env:
           AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
-          ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
+          LOGIN_SERVER: ${{ steps.image.outputs.login_server }}
           IMAGE_NAME: ${{ steps.image.outputs.image_name }}
         run: |
           set -euo pipefail
@@ -105,7 +110,7 @@ jobs:
             --output tsv \
             --query accessToken)"
 
-          echo "${acr_token}" | docker login "${ACR_LOGIN_SERVER}" \
+          echo "${acr_token}" | docker login "${LOGIN_SERVER}" \
             --username "00000000-0000-0000-0000-000000000000" \
             --password-stdin
 
