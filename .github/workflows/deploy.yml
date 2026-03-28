@@ -102,17 +102,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # --expose-token works in non-interactive CI environments
-          # extracts the token and passes it directly to docker login
-          acr_token="$(az acr login \
-            --name "${AZURE_ACR_NAME}" \
-            --expose-token \
-            --output tsv \
-            --query accessToken)"
-
-          echo "${acr_token}" | docker login "${LOGIN_SERVER}" \
-            --username "00000000-0000-0000-0000-000000000000" \
-            --password-stdin
+          az acr login --name "${AZURE_ACR_NAME}"
 
           docker push "${IMAGE_NAME}"
 
