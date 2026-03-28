@@ -88,12 +88,19 @@ jobs:
           set -euo pipefail
           docker build --pull --tag "${IMAGE_NAME}" .
 
-      - name: Push image to Azure Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
-        with:
-          registry: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
-          username: ${{ secrets.AZURE_ACR_USERNAME }}
-          password: ${{ secrets.AZURE_ACR_PASSWORD }}
+      - name: Login to Azure Container Registry with OIDC token
+        shell: bash
+        env:
+          ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
+        run: |
+          set -euo pipefail
+          acr_access_token="$(az account get-access-token \
+            --resource https://containerregistry.azure.net/ \
+            --query accessToken \
+            --output tsv)"
+          echo "${acr_access_token}" | docker login "${ACR_LOGIN_SERVER}" \
+            --username 00000000-0000-0000-0000-000000000000 \
+            --password-stdin
 
       - name: Push image
         shell: bash
