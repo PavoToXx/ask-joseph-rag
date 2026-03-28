@@ -26,6 +26,8 @@ from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langdetect import LangDetectException, detect
 import re
+
+from backend.chroma_bootstrap import ensure_chroma_ready
 from backend.ingest import RETRIEVAL_INTENT_MAP, VALID_RETRIEVAL_INTENTS
 
 from backend.config import Settings
@@ -175,6 +177,7 @@ class RAGChain:
             Exception: Si las credenciales de Azure son inválidas.
         """
         logger.info("Initializing RAG chain components...")
+        ensure_chroma_ready(self._settings.chroma_path)
 
         # Los valores vienen de Settings (pydantic-settings), que los leyó
         # de variables de entorno. Nunca llegan hardcodeados desde el código.

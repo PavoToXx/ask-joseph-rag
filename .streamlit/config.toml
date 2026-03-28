@@ -29,3 +29,8 @@ dataframeHeaderBackgroundColor="#0C2F40"
 
 redColor = "#0EA5C6"
 orangeColor = "#EAF5F2"
+
+[server]
+port = 8501
+address = "0.0.0.0"
+headless = true

@@ -17,7 +17,7 @@ Modos de autenticación:
 └─────────────────┴─────────────────────────────────────────────────────────┘
 """
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
@@ -27,7 +27,7 @@ from backend.config import Environment, Settings
 logger = logging.getLogger(__name__)
 
 
-def get_s3_client(settings: Settings) -> Any:
+def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
     """
     Crea un cliente S3 usando el método de autenticación correcto para el entorno.
 
@@ -40,6 +40,11 @@ def get_s3_client(settings: Settings) -> Any:
     Raises:
         RuntimeError: Si boto3 no puede encontrar credenciales válidas.
     """
+    # Asegura que `target_bucket` está siempre inicializado, incluso si ocurre
+    # una excepción antes de entrar en el bloque `try` (evita advertencias
+    # de linters/static analyzers sobre variable posiblemente no inicializada).
+    target_bucket = bucket_name or settings.aws_bucket_name
+
     try:
         if settings.environment == Environment.LOCAL:
             # Usa el profile de ~/.aws/credentials — NUNCA hardcodeado en repo.
@@ -71,10 +76,10 @@ def get_s3_client(settings: Settings) -> Any:
 
         # Validación temprana: verifica que las credenciales funcionan
         # antes de que llegue la primera request.
-        client.head_bucket(Bucket=settings.aws_bucket_name)
+        client.head_bucket(Bucket=target_bucket)
         logger.info(
             "S3 client initialized. bucket='%s' region='%s'",
-            settings.aws_bucket_name,
+            target_bucket,
             settings.aws_region,
         )
         return client
@@ -91,7 +96,7 @@ def get_s3_client(settings: Settings) -> Any:
         # No loguear el mensaje completo: puede contener info del bucket
         logger.error("S3 ClientError al validar bucket. code='%s'", error_code)
         raise RuntimeError(
-            f"No se pudo acceder al bucket S3 '{settings.aws_bucket_name}'. "
+            f"No se pudo acceder al bucket S3 '{target_bucket}'. "
             f"Verifica que existe y que el rol tiene permisos s3:HeadBucket."
         ) from e
 

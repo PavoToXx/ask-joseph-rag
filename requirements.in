@@ -19,4 +19,4 @@ langdetect
 pytest 
 pytest-asyncio 
 rank-bm25
- 
+supervisor

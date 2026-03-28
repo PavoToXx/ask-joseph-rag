@@ -21,11 +21,11 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Optional
+import sys
+from typing import Any, Optional
 
-import boto3
 import chromadb
-from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
+from botocore.exceptions import BotoCoreError, ClientError
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import TextLoader, UnstructuredHTMLLoader
 from langchain_core.documents import Document
@@ -33,6 +33,7 @@ from langchain_openai import AzureOpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import SecretStr
 
+from backend.aws_client import get_s3_client
 from backend.config import Settings, get_settings
 
 # ------------------------------------------------------------------ #
@@ -449,7 +450,7 @@ def load_ingest_config() -> dict:
 #  Cliente S3                                                          #
 # ------------------------------------------------------------------ #
 
-def _build_s3_client(settings: Settings):
+def _build_s3_client(settings: Settings) -> Any:
     """
     Crea un cliente S3 usando el método de autenticación correcto.
 
@@ -462,28 +463,7 @@ def _build_s3_client(settings: Settings):
     Raises:
         RuntimeError: Si no se encuentran credenciales válidas.
     """
-    try:
-        from config import Environment
-
-        if settings.environment == Environment.LOCAL:
-            logger.debug("AWS auth: LOCAL profile='%s'", settings.aws_profile)
-            session = boto3.Session(
-                profile_name=settings.aws_profile,
-                region_name=settings.aws_region,
-            )
-        else:
-            # GITHUB_ACTIONS: OIDC inyecta env vars automáticamente
-            # AZURE: Managed Identity → AssumeRoleWithWebIdentity automático
-            logger.debug("AWS auth: %s (auto-detected)", settings.environment.value)
-            session = boto3.Session(region_name=settings.aws_region)
-
-        return session.client("s3")
-
-    except NoCredentialsError as e:
-        raise RuntimeError(
-            f"No se encontraron credenciales AWS para ENVIRONMENT='{settings.environment}'. "
-            "Revisa ~/.aws/credentials (local) o las variables de entorno (CI/Azure)."
-        ) from e
+    return get_s3_client(settings)
 
 
 def download_from_s3(settings: Settings, local_dir: str = LOCAL_DOCS_DIR) -> Path:
@@ -786,6 +766,47 @@ def ingest_to_chroma(
     return vectorstore
 
 
+def upload_chroma_to_s3(settings: Settings) -> None:
+    """Upload the local persisted ChromaDB directory to S3.
+
+    Args:
+        settings: Validated application settings.
+
+    Raises:
+        RuntimeError: If upload configuration is invalid or upload fails.
+    """
+    chroma_prefix = settings.aws_chroma_prefix
+    if not chroma_prefix:
+        raise RuntimeError(
+            "AWS_CHROMA_PREFIX is required to upload persisted ChromaDB."
+        )
+
+    source_dir = Path(settings.chroma_path)
+    if not source_dir.exists() or not source_dir.is_dir():
+        raise RuntimeError(
+            f"Local ChromaDB path '{source_dir}' does not exist after indexing."
+        )
+
+    bucket_name = settings.aws_chroma_bucket_name or settings.aws_bucket_name
+    s3 = _build_s3_client(settings)
+
+    try:
+        for local_file in source_dir.rglob("*"):
+            if not local_file.is_file():
+                continue
+            relative_path = local_file.relative_to(source_dir).as_posix()
+            s3_key = f"{chroma_prefix}/{relative_path}"
+            logger.info("Uploading ChromaDB file to s3://%s/%s", bucket_name, s3_key)
+            s3.upload_file(str(local_file), bucket_name, s3_key)
+    except ClientError as error:
+        error_code = error.response["Error"].get("Code", "Unknown")
+        raise RuntimeError(
+            f"Failed to upload ChromaDB to S3. code='{error_code}'."
+        ) from error
+    except BotoCoreError as error:
+        raise RuntimeError("Failed to upload ChromaDB to S3.") from error
+
+
 # ------------------------------------------------------------------ #
 #  Pipeline principal                                                  #
 # ------------------------------------------------------------------ #
@@ -862,11 +883,10 @@ def run_ingest(
     )
 
     if not all_chunks:
-        logger.error(
-            "No se generaron chunks. Verifica que S3 tiene archivos y "
-            "que ingest_config.json tiene los defaults correctos."
+        raise RuntimeError(
+            "No chunks were generated during ingest. "
+            "Verify S3 source files and ingest configuration."
         )
-        return
 
     ingest_to_chroma(
         chunks=all_chunks,
@@ -875,8 +895,23 @@ def run_ingest(
         clear_existing=clear_existing,
     )
 
-    logger.info("Pipeline de ingesta finalizado correctamente.")
+    upload_chroma_to_s3(settings)
+    logger.info("ChromaDB uploaded to S3. Ready to deploy.")
+
+
+def main() -> int:
+    """Run ingest pipeline and return process exit code.
+
+    Returns:
+        Exit code where 0 means success and 1 means failure.
+    """
+    try:
+        run_ingest()
+        return 0
+    except Exception:
+        logger.exception("Ingest pipeline failed.")
+        return 1
 
 
 if __name__ == "__main__":
-    run_ingest()
+    sys.exit(main())

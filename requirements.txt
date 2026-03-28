@@ -408,6 +408,8 @@ starlette==1.0.0
     # via fastapi
 streamlit==1.55.0
     # via -r requirements.in
+supervisor==4.3.0
+    # via -r requirements.in
 sympy==1.14.0
     # via onnxruntime
 tenacity==9.1.4
