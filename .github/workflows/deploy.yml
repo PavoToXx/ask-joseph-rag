@@ -65,21 +65,16 @@ jobs:
         env:
           ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
           AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
-          # APP_HEALTHCHECK_URL: ${{ vars.APP_HEALTHCHECK_URL }}
         run: |
           set -euo pipefail
 
           image_tag="sha-${GITHUB_SHA}"
           image_name="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${image_tag}"
 
-          if [[ -n "${APP_HEALTHCHECK_URL:-}" ]]; then
-            health_url="${APP_HEALTHCHECK_URL}"
-          else
-            health_url="https://${AZURE_WEBAPP_NAME}.azurewebsites.net/health"
-          fi
-
+          health_url="https://${AZURE_WEBAPP_NAME}.azurewebsites.net/health"
+          
           {
-            echo "login_server=${login_server}"
+            echo "login_server=${ACR_LOGIN_SERVER}"
             echo "image_name=${image_name}"
             echo "health_url=${health_url}"
           } >> "${GITHUB_OUTPUT}"
