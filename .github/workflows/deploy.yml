@@ -69,9 +69,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          login_server="$(az acr show --name "${AZURE_ACR_NAME}" --query loginServer --output tsv)"
           image_tag="sha-${GITHUB_SHA}"
-          image_name="${login_server}/${IMAGE_REPOSITORY}:${image_tag}"
+          image_name="${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${image_tag}"
 
           if [[ -n "${APP_HEALTHCHECK_URL:-}" ]]; then
             health_url="${APP_HEALTHCHECK_URL}"
