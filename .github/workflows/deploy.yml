@@ -63,7 +63,7 @@ jobs:
         id: image
         shell: bash
         env:
-          AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+          ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
           AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
           # APP_HEALTHCHECK_URL: ${{ vars.APP_HEALTHCHECK_URL }}
         run: |
