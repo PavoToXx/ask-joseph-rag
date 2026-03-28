@@ -92,10 +92,23 @@ jobs:
         shell: bash
         env:
           AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+          ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
           IMAGE_NAME: ${{ steps.image.outputs.image_name }}
         run: |
           set -euo pipefail
-          az acr login --name "${AZURE_ACR_NAME}"
+
+          # --expose-token works in non-interactive CI environments
+          # extracts the token and passes it directly to docker login
+          acr_token="$(az acr login \
+            --name "${AZURE_ACR_NAME}" \
+            --expose-token \
+            --output tsv \
+            --query accessToken)"
+
+          echo "${acr_token}" | docker login "${ACR_LOGIN_SERVER}" \
+            --username "00000000-0000-0000-0000-000000000000" \
+            --password-stdin
+
           docker push "${IMAGE_NAME}"
 
       - name: Grant App Service AcrPull on ACR
