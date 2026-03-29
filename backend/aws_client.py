@@ -101,11 +101,23 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
                 with urlopen(req, timeout=10) as resp:
                     token_data = json.loads(resp.read().decode("utf-8"))
                     web_identity_token = token_data["access_token"]
+                    
+                    import base64
 
+                    def decode_jwt(token):
+                        payload = token.split('.')[1]
+                        padding = '=' * (-len(payload) % 4)
+                        decoded = base64.urlsafe_b64decode(payload + padding)
+                        return decoded.decode()
+                        
+                    logger.error("JWT PAYLOAD: %s", decode_jwt(web_identity_token))
+
+            
             except HTTPError as e:
                 error_body = e.read().decode()
                 logger.error(f"Managed Identity error: {error_body}")
                 raise
+            
 
             sts_client = boto3.client("sts", region_name=settings.aws_region)
 
