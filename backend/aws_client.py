@@ -9,9 +9,10 @@ import logging
 import os
 from typing import Any, Optional
 
+import json
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
-
+from urllib.request import Request, urlopen
 from backend.config import Environment, Settings
 
 logger = logging.getLogger(__name__)
@@ -49,51 +50,46 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
             session = boto3.Session()
 
         else:
-            # ENVIRONMENT=azure: Azure Managed Identity → AWS AssumeRoleWithWebIdentity
-            # Azure no inyecta AWS_WEB_IDENTITY_TOKEN_FILE automáticamente.
-            # Obtenemos el token OIDC de Azure Managed Identity y asumimos
-            # el rol IAM explícitamente via STS.
-            import os
-            import urllib.request
-
             logger.debug(
-                "AWS auth mode: AZURE (Managed Identity → AssumeRoleWithWebIdentity)"
+                "AWS auth mode: AZURE APP SERVICE (Managed Identity -> AssumeRoleWithWebIdentity)"
             )
 
-            aws_role_arn = os.environ.get("AWS_ROLE_ARN")
+            aws_role_arn = os.getenv("AWS_ROLE_ARN")
             if not aws_role_arn:
-                raise RuntimeError(
-                    "AWS_ROLE_ARN no está configurado en las variables de entorno de Azure."
-                )
+                raise RuntimeError("AWS_ROLE_ARN no está configurado.")
 
-            # Obtener token OIDC desde Azure Managed Identity endpoint
-            # Este endpoint solo está disponible dentro de Azure App Service
-            identity_endpoint = os.environ.get("IDENTITY_ENDPOINT")
-            identity_header = os.environ.get("IDENTITY_HEADER")
+            identity_endpoint = os.getenv("IDENTITY_ENDPOINT")
+            identity_header = os.getenv("IDENTITY_HEADER")
 
             if not identity_endpoint or not identity_header:
                 raise RuntimeError(
-                    "IDENTITY_ENDPOINT o IDENTITY_HEADER no encontrados. "
-                    "Verifica que Managed Identity está habilitado en App Service."
+                    "Managed Identity no disponible. Verifica que esté habilitada en App Service."
                 )
 
-            # Solicitar token OIDC para AWS (audience = sts.amazonaws.com)
+            # 👇 IMPORTANTE: este resource debe coincidir con tu trust policy en AWS
+            resource = os.getenv(
+                "AZURE_WEB_IDENTITY_RESOURCE",
+                "api://AzureADTokenExchange"
+            )
+
             token_url = (
                 f"{identity_endpoint}"
                 f"?api-version=2019-08-01"
-                f"&resource=api://AzureADTokenExchange"
+                f"&resource={resource}"
             )
-            req = urllib.request.Request(
+
+            req = Request(
                 token_url,
-                headers={"X-IDENTITY-HEADER": identity_header}
+                headers={"X-IDENTITY-HEADER": identity_header},
+                method="GET",
             )
-            with urllib.request.urlopen(req) as resp:
-                import json
-                token_data = json.loads(resp.read())
+
+            with urlopen(req, timeout=10) as resp:
+                token_data = json.loads(resp.read().decode("utf-8"))
                 web_identity_token = token_data["access_token"]
 
-            # Asumir rol AWS con el token OIDC de Azure
             sts_client = boto3.client("sts", region_name=settings.aws_region)
+
             assumed = sts_client.assume_role_with_web_identity(
                 RoleArn=aws_role_arn,
                 RoleSessionName="azure-app-service-session",
@@ -101,6 +97,7 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
             )
 
             creds = assumed["Credentials"]
+
             session = boto3.Session(
                 aws_access_key_id=creds["AccessKeyId"],
                 aws_secret_access_key=creds["SecretAccessKey"],
