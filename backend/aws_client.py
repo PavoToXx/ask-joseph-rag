@@ -51,7 +51,7 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
 
         else:
             logger.debug(
-                "AWS auth mode: AZURE APP SERVICE (Managed Identity -> AssumeRoleWithWebIdentity)"
+                "AWS auth mode: AZURE APP SERVICE (User Assigned MI -> AssumeRoleWithWebIdentity)"
             )
 
             aws_role_arn = os.getenv("AWS_ROLE_ARN")
@@ -66,16 +66,24 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
                     "Managed Identity no disponible. Verifica que esté habilitada en App Service."
                 )
 
-            # 👇 IMPORTANTE: este resource debe coincidir con tu trust policy en AWS
+            # 👇 CRÍTICO: Client ID de tu User Assigned Identity (ua-id-8598)
+            azure_client_id = os.getenv("AZURE_CLIENT_ID")
+            if not azure_client_id:
+                raise RuntimeError(
+                    "AZURE_CLIENT_ID no está configurado (User Assigned Identity requerida)."
+                )
+
+            # 👇 CRÍTICO: debe coincidir EXACTAMENTE con AWS (trust policy)
             resource = os.getenv(
                 "AZURE_WEB_IDENTITY_RESOURCE",
-                "api://AzureADTokenExchange"
+                f"api://{azure_client_id}"
             )
 
             token_url = (
                 f"{identity_endpoint}"
                 f"?api-version=2019-08-01"
                 f"&resource={resource}"
+                f"&client_id={azure_client_id}"   # 👈 DIFERENCIA CLAVE (User Assigned)
             )
 
             req = Request(
