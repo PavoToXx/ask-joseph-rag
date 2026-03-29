@@ -103,45 +103,6 @@ jobs:
           az acr login --name "${AZURE_ACR_NAME}"
           docker push "${IMAGE_NAME}"
 
-      - name: Grant App Service AcrPull on ACR
-        shell: bash
-        env:
-          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
-          AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        run: |
-          set -euo pipefail
-
-          principal_id="$(az webapp identity assign \
-            --resource-group "${AZURE_RESOURCE_GROUP}" \
-            --name "${AZURE_WEBAPP_NAME}" \
-            --query principalId \
-            --output tsv)"
-
-          acr_id="/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${AZURE_RESOURCE_GROUP}/providers/Microsoft.ContainerRegistry/registries/${AZURE_ACR_NAME}"
-
-          assignment_count="$(az role assignment list \
-            --assignee-object-id "${principal_id}" \
-            --scope "${acr_id}" \
-            --query "[?roleDefinitionName=='AcrPull'] | length(@)" \
-            --output tsv)"
-
-          if [[ "${assignment_count}" == "0" ]]; then
-            az role assignment create \
-              --assignee-object-id "${principal_id}" \
-              --assignee-principal-type ServicePrincipal \
-              --scope "${acr_id}" \
-              --role "AcrPull" \
-              --only-show-errors
-          fi
-
-          az webapp config set \
-            --resource-group "${AZURE_RESOURCE_GROUP}" \
-            --name "${AZURE_WEBAPP_NAME}" \
-            --generic-configurations '{"acrUseManagedIdentityCreds": true}' \
-            --only-show-errors
-
       - name: Deploy container to App Service
         shell: bash
         env:
