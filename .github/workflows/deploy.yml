@@ -119,7 +119,6 @@ jobs:
             --query principalId \
             --output tsv)"
 
-          # Construct ACR resource ID from known vars — no az acr show query needed
           acr_id="/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${AZURE_RESOURCE_GROUP}/providers/Microsoft.ContainerRegistry/registries/${AZURE_ACR_NAME}"
 
           assignment_count="$(az role assignment list \
