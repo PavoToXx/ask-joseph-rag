@@ -3,7 +3,8 @@ name: Deploy
 on:
   push:
     branches:
-      - main
+      # - main
+      - sprint6
 
 permissions:
   contents: read
@@ -97,12 +98,10 @@ jobs:
         shell: bash
         env:
           AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
-          AZURE_ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
+          IMAGE_NAME: ${{ steps.image.outputs.image_name }}
         run: |
           set -euo pipefail
-
-          az acr login --name "rag-joseph-github-oidc" 
-
+          az acr login --name "${AZURE_ACR_NAME}"
           docker push "${IMAGE_NAME}"
 
       - name: Grant App Service AcrPull on ACR
