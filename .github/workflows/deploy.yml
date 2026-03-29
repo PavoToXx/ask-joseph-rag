@@ -97,12 +97,11 @@ jobs:
         shell: bash
         env:
           AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
-          LOGIN_SERVER: ${{ steps.image.outputs.login_server }}
-          IMAGE_NAME: ${{ steps.image.outputs.image_name }}
+          AZURE_ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
         run: |
           set -euo pipefail
 
-          az acr login --name "${AZURE_ACR_NAME}"
+          az acr login --name "rag-joseph-github-oidc" 
 
           docker push "${IMAGE_NAME}"
 
