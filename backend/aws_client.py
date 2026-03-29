@@ -81,7 +81,7 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
             token_url = (
                 f"{identity_endpoint}"
                 f"?api-version=2019-08-01"
-                f"&resource=sts.amazonaws.com"
+                f"&resource=api://AzureADTokenExchange"
             )
             req = urllib.request.Request(
                 token_url,
