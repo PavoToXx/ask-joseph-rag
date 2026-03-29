@@ -8,6 +8,8 @@ Credentials are never hardcoded in source code.
 import logging
 import os
 from typing import Any, Optional
+from urllib.error import HTTPError
+
 
 import json
 import boto3
@@ -76,7 +78,7 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
             # 👇 CRÍTICO: debe coincidir EXACTAMENTE con AWS (trust policy)
             resource = os.getenv(
                 "AZURE_WEB_IDENTITY_RESOURCE",
-                f"api://{azure_client_id}"
+                "https://management.azure.com/"
             )
 
             token_url = (
@@ -85,6 +87,9 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
                 f"&resource={resource}"
                 f"&client_id={azure_client_id}"   # 👈 DIFERENCIA CLAVE (User Assigned)
             )
+            logger.error(f"IDENTITY_ENDPOINT: {identity_endpoint}")
+            logger.error(f"AZURE_CLIENT_ID: {azure_client_id}")
+            logger.error(f"RESOURCE: {resource}")
 
             req = Request(
                 token_url,
@@ -92,9 +97,15 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
                 method="GET",
             )
 
-            with urlopen(req, timeout=10) as resp:
-                token_data = json.loads(resp.read().decode("utf-8"))
-                web_identity_token = token_data["access_token"]
+            try:
+                with urlopen(req, timeout=10) as resp:
+                    token_data = json.loads(resp.read().decode("utf-8"))
+                    web_identity_token = token_data["access_token"]
+
+            except HTTPError as e:
+                error_body = e.read().decode()
+                logger.error(f"Managed Identity error: {error_body}")
+                raise
 
             sts_client = boto3.client("sts", region_name=settings.aws_region)
 
