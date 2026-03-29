@@ -101,7 +101,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          az acr login --name "${rag-joseph-github-oidc}" 
+          az acr login --name "rag-joseph-github-oidc" 
 
           docker push "${IMAGE_NAME}"
 
