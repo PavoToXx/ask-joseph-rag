@@ -9,9 +9,10 @@ import logging
 import os
 from typing import Any, Optional
 
+import json
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
-
+from urllib.request import Request, urlopen
 from backend.config import Environment, Settings
 
 logger = logging.getLogger(__name__)
