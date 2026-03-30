@@ -33,7 +33,7 @@ and online inference.
 
 ## Architecture
 
-![Architecture Diagram](docs/assets/Arquitectura_JAR.png)
+![Architecture Diagram](docs/assets/arq.png)
 
 > The architecture separates **data ingestion** (local, offline) from
 > **runtime** (cloud). ChromaDB is pre-built locally and stored in S3 —
