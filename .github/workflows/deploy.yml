@@ -174,22 +174,22 @@ jobs:
             --name "${AZURE_WEBAPP_NAME}" \
             --only-show-errors
 
-      # - name: Smoke test health endpoint
-      #   shell: bash
-      #   env:
-      #     HEALTH_URL: ${{ steps.image.outputs.health_url }}
-      #   run: |
-      #     set -euo pipefail
+      - name: Smoke test health endpoint
+        shell: bash
+        env:
+          HEALTH_URL: ${{ steps.image.outputs.health_url }}
+        run: |
+          set -euo pipefail
 
-      #     for attempt in {1..20}; do
-      #       status_code="$(curl --silent --show-error --output /dev/null --write-out "%{http_code}" "${HEALTH_URL}" || true)"
+          for attempt in {1..20}; do
+            status_code="$(curl --silent --show-error --output /dev/null --write-out "%{http_code}" "${HEALTH_URL}" || true)"
 
-      #       if [[ "${status_code}" == "200" ]]; then
-      #         exit 0
-      #       fi
+            if [[ "${status_code}" == "200" ]]; then
+              exit 0
+            fi
 
-      #       sleep 15
-      #     done
+            sleep 15
+          done
 
-      #     echo "Smoke test failed for ${HEALTH_URL}" >&2
-      #     exit 1
+          echo "Smoke test failed for ${HEALTH_URL}" >&2
+          exit 1
