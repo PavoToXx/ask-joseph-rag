@@ -184,11 +184,6 @@ def render_sidebar() -> None:
 
     if PHOTO_PATH.exists():
         st.sidebar.image(str(PHOTO_PATH), width='stretch')
-        try:
-            used_path = PHOTO_PATH.resolve(strict=False)
-        except Exception:
-            used_path = PHOTO_PATH
-        st.sidebar.caption(f"Using image at: {used_path}")
     else:
         try:
             looked_path = PHOTO_PATH.resolve(strict=False)
