@@ -20,7 +20,7 @@ class ChatMessage(TypedDict):
 PAGE_TITLE = "J.A.R"
 BACKEND_URL = get_settings().backend_url
 MAX_QUESTION_LENGTH = 500
-PHOTO_PATH = Path("/app/frontend/assets/photo.png")
+PHOTO_PATH = Path("/frontend/assets/photo.png")
 GITHUB_URL = "https://github.com/PavoToXx"
 LINKEDIN_URL = "https://www.linkedin.com/in/josephdominguez-/"
 
@@ -28,7 +28,7 @@ DEFAULT_METRICS = {"latency_ms": None, "tokens_used": None}
 STREAM_ENDPOINT = "/ask/stream"
 TRANSLATIONS = {
     "es": {
-        "title": "J.R.A",
+        "title": "J.A.R",
         "subtitle": "RAG system sobre mi trayectoria profesional",
         "sidebar_title": "Sobre Joseph",
         "bio": "Joseph es un apasionado de la nube y en ML, centrado en la creación de productos de IA útiles, flujos de trabajo fiables y sistemas de recuperación prácticos.",
@@ -37,9 +37,9 @@ TRANSLATIONS = {
         "suggested": "Preguntas sugeridas",
         "chat_placeholder": "Haz una pregunta sobre el ambito profesional de Joseph...",
         "thinking_states": [
-            "J.R.A esta pensando.",
-            "J.R.A esta pensando..",
-            "J.R.A esta pensando...",
+            "J.A.R esta pensando.",
+            "J.A.R esta pensando..",
+            "J.A.R esta pensando...",
         ],
         "rate_limit": "Has alcanzado el limite de preguntas por hora. Intenta de nuevo en unos minutos.",
         "generic_error": "Ocurrio un error inesperado. Por favor intenta de nuevo.",
@@ -61,7 +61,7 @@ TRANSLATIONS = {
         ],
     },
     "en": {
-        "title": "J.R.A",
+        "title": "J.A.R",
         "subtitle": "RAG system about my professional journey",
         "sidebar_title": "About Joseph",
         "bio": "Joseph is a cloud and ML practitioner focused on building useful AI products, reliable pipelines, and practical retrieval systems.",
@@ -70,9 +70,9 @@ TRANSLATIONS = {
         "suggested": "Suggested questions",
         "chat_placeholder": "Ask about Joseph's professional background...",
         "thinking_states": [
-            "J.R.A is thinking.",
-            "J.R.A is thinking..",
-            "J.R.A is thinking...",
+            "J.A.R is thinking.",
+            "J.A.R is thinking..",
+            "J.A.R is thinking...",
         ],
         "rate_limit": "You have reached the hourly question limit. Please try again in a few minutes.",
         "generic_error": "An unexpected error occurred. Please try again.",
@@ -185,7 +185,14 @@ def render_sidebar() -> None:
     if PHOTO_PATH.exists():
         st.sidebar.image(str(PHOTO_PATH), width='stretch')
     else:
-        st.sidebar.info("Add your photo to `frontend/assets/photo.png` to display it here.")
+        try:
+            looked_path = PHOTO_PATH.resolve(strict=False)
+        except Exception:
+            looked_path = PHOTO_PATH
+        st.sidebar.info(
+            f"Add your photo to frontend/assets/photo.png to display it here. (Looking at: {looked_path})"
+        )
+        
 
     st.sidebar.markdown(copy["bio"])
     st.sidebar.link_button(copy["github"], GITHUB_URL, width='stretch')
