@@ -87,9 +87,6 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
                 f"&resource={resource}"
                 f"&client_id={azure_client_id}"   # 👈 DIFERENCIA CLAVE (User Assigned)
             )
-            logger.error(f"IDENTITY_ENDPOINT: {identity_endpoint}")
-            logger.error(f"AZURE_CLIENT_ID: {azure_client_id}")
-            logger.error(f"RESOURCE: {resource}")
 
             req = Request(
                 token_url,
@@ -101,18 +98,7 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
                 with urlopen(req, timeout=10) as resp:
                     token_data = json.loads(resp.read().decode("utf-8"))
                     web_identity_token = token_data["access_token"]
-                    
-                    import base64
-
-                    def decode_jwt(token):
-                        payload = token.split('.')[1]
-                        padding = '=' * (-len(payload) % 4)
-                        decoded = base64.urlsafe_b64decode(payload + padding)
-                        return decoded.decode()
-                        
-                    logger.error("JWT PAYLOAD: %s", decode_jwt(web_identity_token))
-
-            
+                                
             except HTTPError as e:
                 error_body = e.read().decode()
                 logger.error(f"Managed Identity error: {error_body}")
@@ -139,11 +125,7 @@ def get_s3_client(settings: Settings, bucket_name: Optional[str] = None) -> Any:
 
         # Early validation so startup fails fast with a clear message.
         client.head_bucket(Bucket=target_bucket)
-        logger.info(
-            "S3 client initialized. bucket='%s' region='%s'",
-            target_bucket,
-            settings.aws_region,
-        )
+        
         return client
 
     except NoCredentialsError as exc:

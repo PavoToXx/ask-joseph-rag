@@ -20,7 +20,8 @@ class ChatMessage(TypedDict):
 PAGE_TITLE = "J.A.R"
 BACKEND_URL = get_settings().backend_url
 MAX_QUESTION_LENGTH = 500
-PHOTO_PATH = Path(__file__).parent / "assets" / "photo.png"
+BASE_DIR = Path(__file__).resolve().parent.parent
+PHOTO_PATH = BASE_DIR / "assets" / "photo.png"
 GITHUB_URL = "https://github.com/PavoToXx"
 LINKEDIN_URL = "https://www.linkedin.com/in/josephdominguez-/"
 
