@@ -20,7 +20,7 @@ class ChatMessage(TypedDict):
 PAGE_TITLE = "J.A.R"
 BACKEND_URL = get_settings().backend_url
 MAX_QUESTION_LENGTH = 500
-PHOTO_PATH = Path("/frontend/assets/photo.png")
+PHOTO_PATH = Path(__file__).resolve().parent / "assets" / "photo.png"
 GITHUB_URL = "https://github.com/PavoToXx"
 LINKEDIN_URL = "https://www.linkedin.com/in/josephdominguez-/"
 
@@ -184,6 +184,11 @@ def render_sidebar() -> None:
 
     if PHOTO_PATH.exists():
         st.sidebar.image(str(PHOTO_PATH), width='stretch')
+        try:
+            used_path = PHOTO_PATH.resolve(strict=False)
+        except Exception:
+            used_path = PHOTO_PATH
+        st.sidebar.caption(f"Using image at: {used_path}")
     else:
         try:
             looked_path = PHOTO_PATH.resolve(strict=False)
