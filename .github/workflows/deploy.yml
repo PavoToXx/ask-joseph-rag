@@ -63,24 +63,25 @@ jobs:
         id: image
         shell: bash
         env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
           AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
           # APP_HEALTHCHECK_URL: ${{ vars.APP_HEALTHCHECK_URL }}
         run: |
           set -euo pipefail
 
-          login_server="$(az acr show --name "${AZURE_ACR_NAME}" --query loginServer --output tsv)"
-          image_tag="sha-${GITHUB_SHA}"
-          image_name="${login_server}/${IMAGE_REPOSITORY}:${image_tag}"
+          acr_login_server="$(az acr show \
+            --name "${AZURE_ACR_NAME}" \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --query loginServer \
+            --output tsv)"
 
-          if [[ -n "${APP_HEALTHCHECK_URL:-}" ]]; then
-            health_url="${APP_HEALTHCHECK_URL}"
-          else
-            health_url="https://${AZURE_WEBAPP_NAME}.azurewebsites.net/health"
-          fi
+          image_tag="sha-${GITHUB_SHA}"
+          image_name="${acr_login_server}/${IMAGE_REPOSITORY}:${image_tag}"
+          health_url="https://${AZURE_WEBAPP_NAME}.azurewebsites.net/health"
 
           {
-            echo "login_server=${login_server}"
+            echo "login_server=${acr_login_server}"
             echo "image_name=${image_name}"
             echo "health_url=${health_url}"
           } >> "${GITHUB_OUTPUT}"
@@ -103,43 +104,44 @@ jobs:
           az acr login --name "${AZURE_ACR_NAME}"
           docker push "${IMAGE_NAME}"
 
-      - name: Grant App Service AcrPull on ACR
-        shell: bash
-        env:
-          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
-          AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
-        run: |
-          set -euo pipefail
+      # - name: Grant App Service AcrPull on ACR
+      #   shell: bash
+      #   env:
+      #     AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      #     AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+      #     AZURE_ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+      #     AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      #   run: |
+      #     set -euo pipefail
 
-          principal_id="$(az webapp identity assign \
-            --resource-group "${AZURE_RESOURCE_GROUP}" \
-            --name "${AZURE_WEBAPP_NAME}" \
-            --query principalId \
-            --output tsv)"
+      #     principal_id="$(az webapp identity assign \
+      #       --resource-group "${AZURE_RESOURCE_GROUP}" \
+      #       --name "${AZURE_WEBAPP_NAME}" \
+      #       --query principalId \
+      #       --output tsv)"
 
-          acr_id="$(az acr show --name "${AZURE_ACR_NAME}" --query id --output tsv)"
+      #     acr_id="/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${AZURE_RESOURCE_GROUP}/providers/Microsoft.ContainerRegistry/registries/${AZURE_ACR_NAME}"
 
-          assignment_count="$(az role assignment list \
-            --assignee-object-id "${principal_id}" \
-            --scope "${acr_id}" \
-            --query "[?roleDefinitionName=='AcrPull'] | length(@)" \
-            --output tsv)"
+      #     assignment_count="$(az role assignment list \
+      #       --assignee-object-id "${principal_id}" \
+      #       --scope "${acr_id}" \
+      #       --query "[?roleDefinitionName=='AcrPull'] | length(@)" \
+      #       --output tsv)"
 
-          if [[ "${assignment_count}" == "0" ]]; then
-            az role assignment create \
-              --assignee-object-id "${principal_id}" \
-              --assignee-principal-type ServicePrincipal \
-              --scope "${acr_id}" \
-              --role "AcrPull" \
-              --only-show-errors
-          fi
+      #     if [[ "${assignment_count}" == "0" ]]; then
+      #       az role assignment create \
+      #         --assignee-object-id "${principal_id}" \
+      #         --assignee-principal-type ServicePrincipal \
+      #         --scope "${acr_id}" \
+      #         --role "AcrPull" \
+      #         --only-show-errors
+      #     fi
 
-          az webapp config set \
-            --resource-group "${AZURE_RESOURCE_GROUP}" \
-            --name "${AZURE_WEBAPP_NAME}" \
-            --generic-configurations '{"acrUseManagedIdentityCreds": true}' \
-            --only-show-errors
+      #     az webapp config set \
+      #       --resource-group "${AZURE_RESOURCE_GROUP}" \
+      #       --name "${AZURE_WEBAPP_NAME}" \
+      #       --generic-configurations '{"acrUseManagedIdentityCreds": true}' \
+      #       --only-show-errors
 
       - name: Deploy container to App Service
         shell: bash
